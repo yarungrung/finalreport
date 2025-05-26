@@ -32,10 +32,6 @@ my_image = (
     .first()
     .select('B.*')
 )
-
-# 匯入台灣堡圖
-
-
 vis_params = {'min':100, 'max': 3500, 'bands': ['B11',  'B8',  'B3']}
 
 #匯入台灣堡圖
