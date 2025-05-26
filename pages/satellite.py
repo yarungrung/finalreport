@@ -18,8 +18,7 @@ ee.Initialize(credentials)
 ###############################################
 
 st.set_page_config(layout="wide")
-st.title("🌍 20250514 作業：GEE Streamlit App 練習")
-st.write("Harmonized Sentinel-2 MSI: MultiSpectral Instrument, Level-1C 土地覆蓋 K-means 分10群")
+st.title("衛星與Sentinel-2土地覆蓋之K-means分群🌍")
 
 # 地理區域
 my_point = ee.Geometry.Point([120.282006,23.101410])
