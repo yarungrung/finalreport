@@ -2,24 +2,15 @@
 # 匯入 Google Earth Engine (EE) Python API 和驗證模組，以調用遙測與地理資料
 # 匯入 Google Cloud 認證金鑰
 # 匯入 Folium 地圖並嵌入在 Streamlit
-# 匯入 Python 的日期時間模組，用來處理日期
 import streamlit as st
 import ee
-from ee import oauth
-from google.oauth2 import service_account
 import folium
-from folium import WmsTileLayer
-from streamlit_folium import folium_static
-from datetime import datetime, timedelta
-import json
 
 st.set_page_config(
     page_title="NDVI Viewer",
     layout="wide",
     initial_sidebar_state="expanded",
 
-# Initializing the Earth Engine library
-# Use ee.Initialize() only on local machine! Comment back before deployement (Unusable on deployment)
 ee.Initialize()
 # Streamlit 的快取函數，讓 GEE 驗證在第一次執行後不需每次重新載入
 @st.cache_data(persist=True)
@@ -41,7 +32,7 @@ def ee_authenticate():
 # 將 GEE 圖層加到 folium 地圖上
 def add_ee_layer(self, ee_image_object, vis_params, name):
     map_id_dict = ee.Image(ee_image_object).getMapId(vis_params)
-# 建立一個 Folium 圖層，使用 GEE 提供的圖磚 (tile) URL
+# 建立一個 Folium 圖層，使用 GEE 提供的圖磚 (tile) URL 並加入到地圖上
     layer = folium.raster_layers.TileLayer(
         tiles=map_id_dict['tile_fetcher'].url_format,
         attr='Map Data &copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>',
@@ -58,7 +49,14 @@ folium.Map.add_ee_layer = add_ee_layer
 # 建立一個 Sentinel-2 衛星影像資料集（依雲量與時間與區域篩選）
 def satCollection(cloudRate, initialDate, updatedDate, aoi):
 # 過濾資料集：根據雲量、日期範圍、區域來過濾
-   m = folium.Map(location=[0, 0], zoom_start=4)
+collection = ee.ImageCollection('COPERNICUS/S2_SR') \
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloudRate)) \
+        .filterDate(initialDate, updatedDate) \
+        .filterBounds(aoi)
+# 這個裁剪函數套用到整個影像資料集
+collection = collection.map(clipCollection)
+   m = folium.Map(center=[23.101397,120.282043], zoom=4)
+
 
 # Time input processing function
 def date_input_proc(input_date, time_range):
