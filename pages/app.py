@@ -42,6 +42,6 @@ st.success(f"目前選擇的日期區間為：{start_date} 到 {end_date}")
 st.title("利用擴充器示範")
 
 with st.expander("展示gif檔"):
-    st.image("Tainan.gif")
+    st.image("Tainan1.gif")
     st.image("Tainan2.gif")
     st.image("Tainan3.gif")
