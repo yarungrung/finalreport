@@ -1,3 +1,8 @@
+# 匯入 Streamlit，以建立互動式的網頁應用
+# 匯入 Google Earth Engine (EE) Python API 和驗證模組，以調用遙測與地理資料
+# 匯入 Google Cloud 認證金鑰
+# 匯入 Folium 地圖並嵌入在 Streamlit
+# 匯入 Python 的日期時間模組，用來處理日期
 import streamlit as st
 import ee
 from ee import oauth
@@ -10,163 +15,33 @@ import json
 
 st.set_page_config(
     page_title="NDVI Viewer",
-    page_icon="https://i0.wp.com/geopard.tech/wp-content/uploads/2022/07/74.3-min-1.jpg?resize=1024%2C555&ssl=1",
     layout="wide",
     initial_sidebar_state="expanded",
-    menu_items={
-    'Get help': "https://github.com/IndigoWizard/NDVI-Viewer",
-    'Report a bug': "https://github.com/IndigoWizard/NDVI-Viewer/issues",
-    'About': "This app was developped by [IndigoWizard](https://github.com/IndigoWizard/NDVI-Viewer) for the purpose of environmental monitoring and geospatial analysis"
-    }
-)
-
-st.markdown(
-"""
-<style>
-    /* Header*/
-    .st-emotion-cache-1avcm0n{
-        height: 1rem;
-    }
-    /* Smooth scrolling*/
-    .main {
-        scroll-behavior: smooth;
-    }
-    /* main app body with less padding*/
-    .st-emotion-cache-z5fcl4 {
-        padding-block: 0;
-        position: relative;
-    }
-
-    /*Sidebar*/
-    .st-emotion-cache-16txtl3 {
-        padding: 0 1rem;
-    }
-
-    /*Sidebar : inside container*/
-    .css-ge7e53 {
-        width: fit-content;
-    }
-
-    /*Sidebar : image*/
-    .css-1kyxreq {
-        display: block !important;
-    }
-
-    /*Sidebar : Navigation list*/
-    div.element-container:nth-child(4) > div:nth-child(1) > div:nth-child(1) > ul:nth-child(1) {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-    }
-    div.element-container:nth-child(4) > div:nth-child(1) > div:nth-child(1) > ul:nth-child(1) > li {
-        padding: 0;
-        margin: 0;
-        padding: 0;
-        font-weight: 600;
-    }
-    div.element-container:nth-child(4) > div:nth-child(1) > div:nth-child(1) > ul:nth-child(1) > li > a {
-        text-decoration: none;
-        transition: 0.2s ease-in-out;
-        padding-inline: 10px;
-    }
-    
-    div.element-container:nth-child(4) > div:nth-child(1) > div:nth-child(1) > ul:nth-child(1) > li > a:hover {
-        color: rgb(46, 206, 255);
-        transition: 0.2s ease-in-out;
-        background: #131720;
-        border-radius: 4px;
-    }
-    
-    /* Sidebar: socials*/
-    div.css-rklnmr:nth-child(6) > div:nth-child(1) > div:nth-child(1) > p {
-        display: flex;
-        flex-direction: row;
-        gap: 1rem;
-    }
-
-    /* Upload info box */
-    /*Upload button: dark theme*/
-    .st-emotion-cache-1erivf3 {
-        display: flex;
-        flex-direction: column;
-        align-items: inherit;
-        font-size: 14px;
-    }
-    .css-u8hs99.eqdbnj014 {
-        display: flex;
-        flex-direction: row;
-        margin-inline: 0;
-    }
-    /*Upload button: light theme*/
-    .st-emotion-cache-1gulkj5 {
-        display: flex;
-        flex-direction: column;
-        align-items: inherit;
-        font-size: 14px;
-    }
-
-    .st-emotion-cache-u8hs99 {
-        display: flex;
-        flex-direction: row;
-        margin-inline: 0;
-    }
-    /*Legend style*/
-
-    .ndvilegend {
-        transition: 0.2s ease-in-out;
-        border-radius: 5px;
-        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-        background: rgba(0, 0, 0, 0.05);
-    }
-    .ndvilegend:hover {
-        transition: 0.3s ease-in-out;
-        box-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
-        background: rgba(0, 0, 0, 0.12);
-        cursor: pointer;
-    }
-    .reclassifiedndvi {
-        transition: 0.2s ease-in-out;
-        border-radius: 5px;
-        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-        background: rgba(0, 0, 0, 0.05);
-    }
-    .reclassifiedndvi:hover {
-        transition: 0.3s ease-in-out;
-        box-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
-        background: rgba(0, 0, 0, 0.12);
-        cursor: pointer;
-    }
-    
-    /*Form submit button: generate map*/
-    button.st-emotion-cache-19rxjzo:nth-child(1) {
-        width: 100%;
-    }
-</style>
-""", unsafe_allow_html=True)
 
 # Initializing the Earth Engine library
 # Use ee.Initialize() only on local machine! Comment back before deployement (Unusable on deployment)
-#ee.Initialize()
-# GEE Servuce Account Auth+init for cloud deployment
+ee.Initialize()
+# Streamlit 的快取函數，讓 GEE 驗證在第一次執行後不需每次重新載入
 @st.cache_data(persist=True)
 def ee_authenticate():
-    # Check for json key in Streamlit Secrets
+    # 檢查 Streamlit 的 secrets 中是否包含 JSON 金鑰，載入 JSON 金鑰內容後，轉成 Python 字典
     if "json_key" in st.secrets:
         json_creds = st.secrets["json_key"]
         service_account_info = json.loads(json_creds)
-        # Catching eventual email related error
+        # 確認金鑰中是否包含 client_email，否則顯示錯誤
         if "client_email" not in service_account_info:
             raise ValueError("Service account email address missing in json key")
         creds = service_account.Credentials.from_service_account_info(service_account_info, scopes=oauth.SCOPES)
-        # Initializing gee for each run of the app
-        ee.Initialize(creds)
+        ee.Initialize(creds) 
+        # 建立服務帳號憑證，並初始化 GEE
     else:
         # Fallback to normal init method if no json key/st secrets available. (local machine)
         ee.Initialize()
 
-# Earth Engine drawing method setup
+# 將 GEE 圖層加到 folium 地圖上
 def add_ee_layer(self, ee_image_object, vis_params, name):
     map_id_dict = ee.Image(ee_image_object).getMapId(vis_params)
+# 建立一個 Folium 圖層，使用 GEE 提供的圖磚 (tile) URL
     layer = folium.raster_layers.TileLayer(
         tiles=map_id_dict['tile_fetcher'].url_format,
         attr='Map Data &copy; <a href="https://earthengine.google.com/">Google Earth Engine</a>',
@@ -177,62 +52,13 @@ def add_ee_layer(self, ee_image_object, vis_params, name):
     layer.add_to(self)
     return layer
 
-# Configuring Earth Engine display rendering method in Folium
+# 將上面的函數掛載到 folium 地圖
 folium.Map.add_ee_layer = add_ee_layer
 
-# Defining a function to create and filter a GEE image collection for results
+# 建立一個 Sentinel-2 衛星影像資料集（依雲量與時間與區域篩選）
 def satCollection(cloudRate, initialDate, updatedDate, aoi):
-    collection = ee.ImageCollection('COPERNICUS/S2_SR') \
-        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloudRate)) \
-        .filterDate(initialDate, updatedDate) \
-        .filterBounds(aoi)
-    
-    # Defining a function to clip the colleciton to the area of interst
-    def clipCollection(image):
-        return image.clip(aoi).divide(10000)
-    # clipping the collection
-    collection = collection.map(clipCollection)
-    return collection
-
-# Upload function
-# Define a global variable to store the centroid of the last uploaded geometry
-last_uploaded_centroid = None
-def upload_files_proc(upload_files):
-    # A global variable to track the latest geojson uploaded
-    global last_uploaded_centroid
-    # Setting up a variable that takes all polygons/geometries within the same/different geojson
-    geometry_aoi_list = []
-
-    for upload_file in upload_files:
-        bytes_data = upload_file.read()
-        geojson_data = json.loads(bytes_data)
-
-        if 'features' in geojson_data and isinstance(geojson_data['features'], list):
-            # Handle GeoJSON files with a 'features' list
-            features = geojson_data['features']
-        elif 'geometries' in geojson_data and isinstance(geojson_data['geometries'], list):
-            # Handle GeoJSON files with a 'geometries' list
-            features = [{'geometry': geo} for geo in geojson_data['geometries']]
-        else:
-            # handling cases of unexpected file format or missing 'features' or 'geometries'
-            continue
-
-        for feature in features:
-            if 'geometry' in feature and 'coordinates' in feature['geometry']:
-                coordinates = feature['geometry']['coordinates']
-                geometry = ee.Geometry.Polygon(coordinates) if feature['geometry']['type'] == 'Polygon' else ee.Geometry.MultiPolygon(coordinates)
-                geometry_aoi_list.append(geometry)
-
-                # Update the last uploaded centroid
-                last_uploaded_centroid = geometry.centroid(maxError=1).getInfo()['coordinates']
-
-    if geometry_aoi_list:
-        geometry_aoi = ee.Geometry.MultiPolygon(geometry_aoi_list)
-    else:
-        geometry_aoi = ee.Geometry.Point([27.98, 36.13])
-
-    return geometry_aoi
-
+# 過濾資料集：根據雲量、日期範圍、區域來過濾
+   m = folium.Map(location=[0, 0], zoom_start=4)
 
 # Time input processing function
 def date_input_proc(input_date, time_range):
