@@ -21,7 +21,6 @@ aoi = center_point.buffer(3000)
 
 # ✅ 建立地圖
 my_Map = geemap.Map(center=[23.0865, 120.3138], zoom=13)
-my_Map.centerObject(aoi, 13)
 
 # === 1994 年 Landsat 5 ===
 collection_1994 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2') \
