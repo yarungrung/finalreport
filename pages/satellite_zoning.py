@@ -18,7 +18,7 @@ ee.Initialize(credentials)
 ###############################################
 
 st.set_page_config(layout="wide")
-st.title("衛星與Sentinel-2土地覆蓋之K-means分群🌍")
+st.title("南科附近衛星影像與Sentinel-2土地覆蓋之K-means分類🌍")
 
 # 地理區域
 my_point = ee.Geometry.Point([120.282006,23.101410])
