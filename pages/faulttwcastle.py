@@ -13,8 +13,10 @@ st.markdown("""
 """)
 st.image("https://github.com/yarungrung/finalreport/blob/main/messageImage_1749027154085.jpg", caption="圖：在colab中失敗的台灣堡圖樣貌", use_column_width=True)
 
-
-
+st.markdown("""
+這張圖展示colab中失敗的台灣堡圖樣貌
+""")
+st.image("螢幕擷取畫面 2025-06-04 201032.png
 
 # 加上說明文字
 st.markdown("""
