@@ -16,11 +16,12 @@ st.set_page_config(layout="wide")
 st.title("南科 1994 vs 2024 衛星影像變遷比較 🌍")
 
 # ✅ 定義 AOI（以點為中心，緩衝 3 公里）
-center_point = ee.Geometry.Point([120.3138, 23.0865])
+center_coords = [120.3138, 23.0865]
+center_point = ee.Geometry.Point(center_coords)
 aoi = center_point.buffer(3000)
 
-# ✅ 建立地圖
-my_Map = geemap.Map(center=[23.0865, 120.3138], zoom=13)
+# ✅ 建立地圖（指定中心與縮放）
+my_Map = geemap.Map(center=center_coords[::-1], zoom=13)
 
 # === 1994 年 Landsat 5 ===
 collection_1994 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2') \
