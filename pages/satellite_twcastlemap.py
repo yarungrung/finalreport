@@ -18,7 +18,7 @@ ee.Initialize(credentials)
 ###############################################
 
 st.set_page_config(layout="wide")
-st.title("衛星與台灣堡圖🌍")
+st.title("南科出現前後之衛星對比🌍")
 
 # 地理區域
 my_point = ee.Geometry.Point([120.282006,23.101410])
@@ -36,7 +36,7 @@ vis_params = {'min':100, 'max': 3500, 'bands': ['B11',  'B8',  'B3']}
 
 # 擷取 Harmonized Sentinel-2 MSI: MultiSpectral Instrument, Level-1C 2025衛星影像
 my_image2025 = (ee.ImageCollection('COPERNICUS/S2_HARMONIZED')
-    .filterBounds(my_point1)
+    .filterBounds(my_point)
     .filterDate('2024-06-30', '2025-01-01')
     .sort('CLOUDY_PIXEL_PERCENTAGE')
     .first()
