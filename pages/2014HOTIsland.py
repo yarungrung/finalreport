@@ -6,7 +6,7 @@ import json
 
 # --- Streamlit 應用程式設定 ---
 st.set_page_config(layout="wide")
-st.title("南科周圍都市熱區🌍2015")
+st.title("南科周圍都市熱區🌍2014")
 
 # --- GEE 服務帳戶驗證 ---
 try:
