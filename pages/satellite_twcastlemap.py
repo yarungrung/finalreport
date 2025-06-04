@@ -19,57 +19,55 @@ ee.Initialize(credentials)
 st.set_page_config(layout="wide")
 st.title("南科出現前後之衛星對比🌍")
 
-# 地理區域與 AOI
-my_point = ee.Geometry.Point([120.282006, 23.101410])
-aoi = my_point.buffer(1000)
+# 設定 AOI（興趣區域）：以指定經緯度為中心，建立 1000 公尺半徑緩衝區
+center_point = ee.Geometry.Point([120.3138, 23.0865])
+aoi = center_point.buffer(1000)
 
 # 建立地圖
 my_Map = geemap.Map()
 
-# === 1984 Landsat 5 ===
+# === 1984：Landsat 5 Collection 2 Level 2 ===
 collection_1984 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2') \
     .filterDate('1984-01-01', '1984-12-31') \
     .filterBounds(aoi) \
     .filter(ee.Filter.lt('CLOUD_COVER', 50)) \
     .sort('CLOUD_COVER')
 
-my_image1984 = collection_1984.first()
+image_1984 = collection_1984.first()
 
-# 檢查是否成功取得影像
-if my_image1984 is None:
-    st.error("❌ 找不到符合條件的 1984 年影像。")
+if image_1984 is None:
+    st.error("❌ 找不到符合條件的 1984 年 Landsat 影像。")
     st.stop()
 
-# 預處理 Landsat：縮放與命名 RGB
-image1984_rgb = my_image1984.select(['SR_B3', 'SR_B2', 'SR_B1']) \
+# Landsat 5 SR 影像需要進行比例調整
+image1984_rgb = image_1984.select(['SR_B3', 'SR_B2', 'SR_B1']) \
     .multiply(0.0000275).add(-0.2) \
-    .rename(['SR_B3', 'SR_B2', 'SR_B1'])  # 保留原始波段名稱
+    .rename(['SR_B3', 'SR_B2', 'SR_B1'])
 
-# === 2024 Sentinel-2 ===
+# === 2024：Sentinel-2 SR ===
 collection_2024 = ee.ImageCollection('COPERNICUS/S2_SR') \
     .filterDate('2024-01-01', '2024-12-31') \
     .filterBounds(aoi) \
     .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
     .sort('CLOUDY_PIXEL_PERCENTAGE')
 
-my_image2024 = collection_2024.first()
+image_2024 = collection_2024.first()
 
-# 檢查是否成功取得影像
-if my_image2024 is None:
-    st.error("❌ 找不到符合條件的 2024 年影像。")
+if image_2024 is None:
+    st.error("❌ 找不到符合條件的 2024 年 Sentinel-2 影像。")
     st.stop()
 
-image2024_rgb = my_image2024.select(['B4', 'B3', 'B2'])  # Sentinel 原始 RGB 波段
+image2024_rgb = image_2024.select(['B4', 'B3', 'B2'])
 
 # 視覺化參數
 vis_1984 = {'min': 0.0, 'max': 0.3, 'bands': ['SR_B3', 'SR_B2', 'SR_B1']}
 vis_2024 = {'min': 0, 'max': 3000, 'bands': ['B4', 'B3', 'B2']}
 
-# 圖層
+# 建立圖層
 left_layer = geemap.ee_tile_layer(image1984_rgb, vis_1984, '1984 真色')
 right_layer = geemap.ee_tile_layer(image2024_rgb, vis_2024, '2024 真色')
 
 # 顯示地圖
-my_Map.centerObject(aoi, 12)
+my_Map.centerObject(aoi, 13)
 my_Map.split_map(left_layer, right_layer)
 my_Map.to_streamlit(height=600)
