@@ -5,7 +5,7 @@ st.title("南科 Timelapse 比較展示")
 st.markdown("### 南科 Timelapse")
 # 顯示前兩張全幅圖片
 st.image("Tainansmall1984~2024.png")
-st.image("Tainannewroad.png")
+st.image("Tianannewroad.png")
 
 # 顯示三張並排的 timelapse
 col1, col2, col3 = st.columns(3)
