@@ -1,5 +1,5 @@
 import streamlit as st
-st.set_page_config(layout="wide")  # 若你有用到寬版顯示
+st.set_page_config(layout="wide")  
 st.title("南科 Timelapse 比較展示")
 
 st.markdown("### 南科 Timelapse")
