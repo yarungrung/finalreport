@@ -1,6 +1,8 @@
 import streamlit as st
 import ee
 from google.oauth2 import service_account
+import geemap.foliumap as geemap  # <--- 這一行是關鍵，你之前的提交中缺少了它
+import json # 為了處理 Streamlit secrets 中的 JSON
 
 # --- Streamlit 應用程式設定 ---
 st.set_page_config(layout="wide")
@@ -13,17 +15,17 @@ st.title("南科周圍都市熱區🌍")
 # # .streamlit/secrets.toml
 # GEE_SERVICE_ACCOUNT = '''
 # {
-#   "type": "service_account",
-#   "project_id": "your-project-id",
-#   "private_key_id": "...",
-#   "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
-#   "client_email": "...",
-#   "client_id": "...",
-#   "auth_uri": "...",
-#   "token_uri": "...",
-#   "auth_provider_x509_cert_url": "...",
-#   "client_x509_cert_url": "...",
-#   "universe_domain": "..."
+#    "type": "service_account",
+#    "project_id": "your-project-id",
+#    "private_key_id": "...",
+#    "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+#    "client_email": "...",
+#    "client_id": "...",
+#    "auth_uri": "...",
+#    "token_uri": "...",
+#    "auth_provider_x509_cert_url": "...",
+#    "client_x509_cert_url": "...",
+#    "universe_domain": "..."
 # }
 # '''
 
@@ -46,7 +48,7 @@ aoi = ee.Geometry.Rectangle([120.265429, 23.057127, 120.362146, 23.115991])
 
 # --- 地圖物件 ---
 # 在 Streamlit 中，通常會創建一個 Map 物件並在需要顯示時調用它的 _repr_html_ 方法
-Map = geemap.Map()
+Map = geemap.Map() # 這一行需要 geemap 被正確導入才能執行
 Map.addLayer(aoi, {}, 'AOI - TAINAN')
 Map.centerObject(aoi, 12)
 
