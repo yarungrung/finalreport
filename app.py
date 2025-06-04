@@ -16,7 +16,7 @@ st.markdown(
 
 st.markdown("### 南科發展史")
 # 圖片
-st.image("南科史.png")
+st.image("南科史2.png")
 
 st.markdown("### 南科 Timelapse")
 
