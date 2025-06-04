@@ -1,8 +1,6 @@
 import streamlit as st
 import ee
 from google.oauth2 import service_account
-import geemap.foliumap as geemap
-import json # 為了處理 Streamlit secrets 中的 JSON
 
 # --- Streamlit 應用程式設定 ---
 st.set_page_config(layout="wide")
@@ -30,9 +28,9 @@ st.title("南科周圍都市熱區🌍")
 # '''
 
 try:
-    # 這裡假設你的 GEE_SERVICE_ACCOUNT 是一個 JSON 字串
-    # 如果它已經是一個 Python 字典，則無需 json.loads
-    service_account_info = json.loads(st.secrets["GEE_SERVICE_ACCOUNT"])
+    # 直接使用 st.secrets 的值，假設 Streamlit 已經將其解析成字典
+    service_account_info = st.secrets["GEE_SERVICE_ACCOUNT"]
+
     credentials = service_account.Credentials.from_service_account_info(
         service_account_info,
         scopes=["https://www.googleapis.com/auth/earthengine"]
@@ -42,13 +40,8 @@ try:
 except Exception as e:
     st.error(f"初始化 Google Earth Engine 失敗: {e}")
     st.info("請確認你的 Streamlit Secrets 中已正確設定 'GEE_SERVICE_ACCOUNT'。")
-    st.stop() # 停止程式運行，直到 GEE 驗證成功
+    st.stop()
 
-# 你原始碼中的 ee.Authenticate() 和 ee.Initialize(project="ee-s1143056")
-# 在使用服務帳戶時通常不需要，因為服務帳戶會直接處理身份驗證。
-# 如果你的服務帳戶金鑰中已經包含了 project_id，這裡可以不用再指定。
-
-# --- 定義 AOI ---
 aoi = ee.Geometry.Rectangle([120.265429, 23.057127, 120.362146, 23.115991])
 
 # --- 地圖物件 ---
