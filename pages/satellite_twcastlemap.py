@@ -21,7 +21,7 @@ st.set_page_config(layout="wide")
 st.title("南科出現前後之衛星對比🌍")
 
 # 地理區域
-my_point = ee.Geometry.Point([120.282006,23.101410])
+my_point = ee.Geometry.Point([120.282006, 23.101410])
 aoi = my_point.buffer(1000)  # 1000 公尺緩衝區作為感興趣區域
 
 # 建立地圖
@@ -43,12 +43,12 @@ my_image2024 = ee.ImageCollection('COPERNICUS/S2_SR') \
     .first()
 
 # 檢查是否有成功取得影像
-if not my_image1984:
-    st.error("❌ 找不到符合條件的 1984 年影像。")
+if not isinstance(my_image1984, ee.Image):
+    st.error("❌ 找不到符合條件的 1984 年影像，請確認地點與資料集。")
     st.stop()
 
-if not my_image2024:
-    st.error("❌ 找不到符合條件的 2024 年影像。")
+if not isinstance(my_image2024, ee.Image):
+    st.error("❌ 找不到符合條件的 2024 年影像，請確認地點與資料集。")
     st.stop()
 
 # 視覺化參數
@@ -56,9 +56,22 @@ vis_params_1984 = {'min': 0, 'max': 3000, 'bands': ['B3', 'B2', 'B1']}  # Landsa
 vis_params_2024 = {'min': 0, 'max': 3000, 'bands': ['B4', 'B3', 'B2']}  # Sentinel-2
 
 # 圖層
-left_layer = geemap.ee_tile_layer(my_image1984, vis_params_1984, '1984 真色')
-right_layer = geemap.ee_tile_layer(my_image2024, vis_params_2024, '2024 真色')
+try:
+    left_layer = geemap.ee_tile_layer(my_image1984, vis_params_1984, '1984 真色')
+except Exception as e:
+    st.error(f"⚠️ 無法產生 1984 年影像圖層：{e}")
+    st.stop()
 
+try:
+    right_layer = geemap.ee_tile_layer(my_image2024, vis_params_2024, '2024 真色')
+except Exception as e:
+    st.error(f"⚠️ 無法產生 2024 年影像圖層：{e}")
+    st.stop()
+
+# 地圖顯示
+my_Map.centerObject(aoi, 12)
+my_Map.split_map(left_layer, right_layer)
+my_Map.to_streamlit(height=600)
 # 地圖顯示
 my_Map.centerObject(aoi, 12)
 my_Map.split_map(left_layer, right_layer)
