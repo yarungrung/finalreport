@@ -7,7 +7,7 @@ st.title("應用程式主頁")
 
 st.markdown(
     """
-    This multipage app template demonstrates various interactive web apps created using [streamlit](https://streamlit.io), [GEE](https://earthengine.google.com/), 
+    以南科，， [streamlit](https://streamlit.io), [GEE](https://earthengine.google.com/), 
     [geemap](https://leafmap.org) and [leafmap](https://leafmap.org). 
     """
 )
