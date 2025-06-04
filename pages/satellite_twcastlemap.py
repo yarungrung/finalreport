@@ -35,10 +35,15 @@ collection_1984 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2') \
 
 my_image1984 = collection_1984.first()
 
+# 檢查是否成功取得影像
+if my_image1984 is None:
+    st.error("❌ 找不到符合條件的 1984 年影像。")
+    st.stop()
+
 # 預處理 Landsat：縮放與命名 RGB
 image1984_rgb = my_image1984.select(['SR_B3', 'SR_B2', 'SR_B1']) \
     .multiply(0.0000275).add(-0.2) \
-    .rename(['R', 'G', 'B'])  # 重新命名為通用 RGB 名稱
+    .rename(['SR_B3', 'SR_B2', 'SR_B1'])  # 保留原始波段名稱
 
 # === 2024 Sentinel-2 ===
 collection_2024 = ee.ImageCollection('COPERNICUS/S2_SR') \
@@ -48,18 +53,16 @@ collection_2024 = ee.ImageCollection('COPERNICUS/S2_SR') \
     .sort('CLOUDY_PIXEL_PERCENTAGE')
 
 my_image2024 = collection_2024.first()
-image2024_rgb = my_image2024.select(['B4', 'B3', 'B2'])  # Sentinel 原始 RGB 波段
 
-# 驗證影像是否存在
-if not isinstance(my_image1984, ee.Image):
-    st.error("❌ 找不到符合條件的 1984 年影像。")
-    st.stop()
-if not isinstance(my_image2024, ee.Image):
+# 檢查是否成功取得影像
+if my_image2024 is None:
     st.error("❌ 找不到符合條件的 2024 年影像。")
     st.stop()
 
+image2024_rgb = my_image2024.select(['B4', 'B3', 'B2'])  # Sentinel 原始 RGB 波段
+
 # 視覺化參數
-vis_1984 = {'min': 0.0, 'max': 0.3, 'bands': ['R', 'G', 'B']}
+vis_1984 = {'min': 0.0, 'max': 0.3, 'bands': ['SR_B3', 'SR_B2', 'SR_B1']}
 vis_2024 = {'min': 0, 'max': 3000, 'bands': ['B4', 'B3', 'B2']}
 
 # 圖層
