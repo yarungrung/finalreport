@@ -31,20 +31,18 @@ except Exception as e:
 
 # --- 只有當 GEE 初始化成功後，才會執行以下代碼 ---
 
-# --- 定義 AOI 座標和日期參數 (直接使用可哈希類型) ---
-aoi_coords = [120.265429, 23.057127, 120.362146, 23.115991] # 使用列表，稍後在函數內部轉換為 ee.Geometry
+# --- 定義 AOI 座標和日期參數 ---
+aoi_coords = [120.265429, 23.057127, 120.362146, 23.115991]
 startDate = '2015-01-01'
 endDate = '2015-04-30'
 
-# 將 AOI 定義為 ee.Geometry.Rectangle 在主腳本流中
+# 將 AOI 定義為 ee.Geometry.Rectangle
 aoi = ee.Geometry.Rectangle(aoi_coords)
-
 
 # --- 地圖物件 ---
 Map = geemap.Map()
 Map.addLayer(aoi, {}, 'AOI - TAINAN')
-Map.centerObject(aoi, 12)
-
+Map.centerObject(aoi, 12) # 設定了初始地圖的中心和縮放
 
 # --- 顯示地圖 ---
 st.write("### 區域概覽")
@@ -52,7 +50,6 @@ Map.to_streamlit(height=500)
 
 
 # --- 函數定義 ---
-# 應用縮放因子
 def applyScaleFactors(image):
     opticalBands = image.select('SR_B.').multiply(0.0000275).add(-0.2)
     thermalBands = image.select('ST_B.*').multiply(0.00341802).add(149.0)
@@ -60,7 +57,6 @@ def applyScaleFactors(image):
     image = image.addBands(thermalBands, overwrite=True)
     return image
 
-# 應用 CloudMask
 def cloudMask(image):
     cloud_shadow_bitmask = (1 << 3)
     cloud_bitmask = (1 << 5)
@@ -68,17 +64,15 @@ def cloudMask(image):
     mask = qa.bitwiseAnd(cloud_shadow_bitmask).eq(0).And(qa.bitwiseAnd(cloud_bitmask).eq(0))
     return image.updateMask(mask)
 
-# --- 影像資料獲取與處理 (修改 get_processed_image 函數) ---
+# --- 影像資料獲取與處理 ---
 st.write("### 載入 Landsat 8 影像")
 
-# 使用 Streamlit 的緩存來避免重複的 Earth Engine 計算
 @st.cache_data
 def get_processed_image(start_date, end_date, coordinates):
-    # 在緩存函數內部重新創建 ee.Geometry 和 ee.ImageCollection
     current_aoi = ee.Geometry.Rectangle(coordinates)
     current_collection = (ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
-                     .filterBounds(current_aoi)
-                     .filterDate(start_date, end_date))
+                         .filterBounds(current_aoi)
+                         .filterDate(start_date, end_date))
 
     image = (current_collection
                .map(applyScaleFactors)
@@ -87,8 +81,7 @@ def get_processed_image(start_date, end_date, coordinates):
                .clip(current_aoi))
     return image
 
-# 調用緩存函數，傳入可哈希的參數
-image = get_processed_image(startDate, endDate, tuple(aoi_coords)) # 這就是第 85 行
+image = get_processed_image(startDate, endDate, tuple(aoi_coords))
 
 # --- 顯示真彩色影像 ---
 st.write("### 真彩色影像 (432)")
@@ -97,9 +90,10 @@ visualization = {
     'min': 0.0,
     'max': 0.3
 }
-
-center = 23.110567, 120.273124
-Map_true_color = geemap.Map(center=Map.center, zoom=Map.zoom)
+# 修改這裡：直接使用已知的中心點和縮放級別
+# 你可以從 Map.centerObject(aoi, 12) 中提取，或者使用 aoi_coords 的中心
+# 或者簡化為一個固定的中心點和縮放，例如：
+Map_true_color = geemap.Map(center=[23.0865, 120.3138], zoom=12) # 以aoi的中心點作為範例
 Map_true_color.addLayer(image, visualization, 'True Color 432')
 Map_true_color.to_streamlit(height=500)
 
@@ -113,17 +107,18 @@ ndvi_vis = {
     'palette': ['blue', 'white', 'green']
 }
 
-Map_ndvi = geemap.Map(center=Map.center, zoom=Map.zoom)
+# 修改這裡：
+Map_ndvi = geemap.Map(center=[23.0865, 120.3138], zoom=12)
 Map_ndvi.addLayer(ndvi, ndvi_vis, 'NDVI - TAINAN')
 Map_ndvi.to_streamlit(height=500)
 
-# --- 計算 NDVI 統計值 (修改 get_ndvi_stats 函數) ---
+# --- 計算 NDVI 統計值 ---
 @st.cache_data
-def get_ndvi_stats(start_date, end_date, aoi_coordinates): # 傳入可哈希的參數
+def get_ndvi_stats(start_date, end_date, aoi_coordinates):
     current_aoi = ee.Geometry.Rectangle(aoi_coordinates)
     current_collection = (ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
-                     .filterBounds(current_aoi)
-                     .filterDate(start_date, end_date))
+                         .filterBounds(current_aoi)
+                         .filterDate(start_date, end_date))
 
     processed_img_for_stats = (current_collection
                                .map(applyScaleFactors)
@@ -167,8 +162,8 @@ st.write("### 地表溫度 (LST)")
 def calculate_lst(start_date, end_date, coordinates, ndvi_min_val, ndvi_max_val):
     current_aoi = ee.Geometry.Rectangle(coordinates)
     current_collection = (ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
-                     .filterBounds(current_aoi)
-                     .filterDate(start_date, end_date))
+                         .filterBounds(current_aoi)
+                         .filterDate(start_date, end_date))
 
     processed_img = (current_collection
                                .map(applyScaleFactors)
@@ -206,10 +201,10 @@ lst_vis = {
     ]
 }
 
-Map_lst = geemap.Map(center=Map.center, zoom=Map.zoom)
+# 修改這裡：
+Map_lst = geemap.Map(center=[23.0865, 120.3138], zoom=12)
 Map_lst.addLayer(lst, lst_vis, 'Land Surface Temperature')
 Map_lst.to_streamlit(height=500)
 
 st.write("---")
 st.write("數據來源：Landsat 8 Collection 2 Tier 1 Level 2")
-
