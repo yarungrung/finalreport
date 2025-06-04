@@ -23,26 +23,23 @@ st.title("南科出現前後之衛星對比🌍")
 # 地理區域
 my_point = ee.Geometry.Point([120.282006,23.101410])
 
-# 擷取 Harmonized Sentinel-2 MSI: MultiSpectral Instrument, Level-1C 1984衛星影像
-my_image1984 = (
-    ee.ImageCollection('COPERNICUS/S2_HARMONIZED')
-    .filterBounds(my_point)
-    .filterDate('1984-01-01', '1984-06-30')
-    .sort('CLOUDY_PIXEL_PERCENTAGE')
+# 用landset5匯入1984的真色衛星影像
+my_image1984 = ee.ImageCollection('LANDSAT/LT05/C01/T1_SR') \
+    .filterDate('1984-01-01', '1984-12-31') \
+    .filterBounds(aoi) \
+    .sort('CLOUD_COVER') \
     .first()
-    .select('B.*')
-)
-vis_params = {'min':100, 'max': 3500, 'bands': ['B11',  'B8',  'B3']}
+vis_params_1984 = {'min': 0, 'max': 3000, 'bands': ['B3', 'B2', 'B1']}
+
 
 # 擷取 Harmonized Sentinel-2 MSI: MultiSpectral Instrument, Level-1C 2025衛星影像
-my_image2025 = (ee.ImageCollection('COPERNICUS/S2_HARMONIZED')
-    .filterBounds(my_point)
-    .filterDate('2024-06-30', '2025-01-01')
-    .sort('CLOUDY_PIXEL_PERCENTAGE')
+my_image1984 = ee.ImageCollection('LANDSAT/LT05/C01/T1_SR') \
+    .filterDate('2024-01-01', '2024-12-31') \
+    .filterBounds(aoi) \
+    .sort('CLOUD_COVER') \
     .first()
-    .select('B.*')
-)
-vis_params = {'min':100, 'max': 3500, 'bands': ['B11',  'B8',  'B3']}
+vis_params_1984 = {'min': 0, 'max': 3000, 'bands': ['B3', 'B2', 'B1']}
+
 
 
 left_layer = geemap.ee_tile_layer(my_image1984,vis_params, '1984真色')
