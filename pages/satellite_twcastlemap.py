@@ -23,15 +23,23 @@ st.title("衛星與台灣堡圖🌍")
 # 地理區域
 my_point = ee.Geometry.Point([120.282006,23.101410])
 
-# 擷取 Harmonized Sentinel-2 MSI: MultiSpectral Instrument, Level-1C 衛星影像
+# 擷取 Harmonized Sentinel-2 MSI: MultiSpectral Instrument, Level-1C 1984衛星影像
 my_image = (
     ee.ImageCollection('COPERNICUS/S2_HARMONIZED')
     .filterBounds(my_point)
-    .filterDate('1984-01-01', '2025-01-01')
+    .filterDate('1984-01-01', '1984-06-30')
     .sort('CLOUDY_PIXEL_PERCENTAGE')
     .first()
     .select('B.*')
 )
 vis_params = {'min':100, 'max': 3500, 'bands': ['B11',  'B8',  'B3']}
 
-#匯入台灣堡圖
+# 擷取 Harmonized Sentinel-2 MSI: MultiSpectral Instrument, Level-1C 2025衛星影像
+my_image2 = (ee.ImageCollection('COPERNICUS/S2_HARMONIZED')
+    .filterBounds(my_point1)
+    .filterDate('2024-06-30', '2025-01-01')
+    .sort('CLOUDY_PIXEL_PERCENTAGE')
+    .first()
+    .select('B.*')
+)
+vis_params = {'min':100, 'max': 3500, 'bands': ['B11',  'B8',  'B3']}
