@@ -17,7 +17,6 @@ st.markdown("### 南科發展史")
 # 圖片
 st.image("南科史.png")
 
-st.title("展示timelapse檔")
 st.markdown("### 南科 Timelapse")
 
 # 顯示三張並排的 timelapse
