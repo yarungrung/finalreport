@@ -12,7 +12,7 @@ st.markdown(
     """
 )
 
-st.set_page_config(layout="wide") 
+
 st.title("南科發展史")
 # 圖片
 st.image("南科史.png")
