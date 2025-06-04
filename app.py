@@ -13,7 +13,7 @@ st.markdown(
 )
 
 
-st.title("南科發展史")
+st.markdown("### 南科發展史")
 # 圖片
 st.image("南科史.png")
 
