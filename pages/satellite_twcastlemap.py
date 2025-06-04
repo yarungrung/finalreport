@@ -22,32 +22,32 @@ aoi = center_point.buffer(1000)
 # 建立地圖
 my_Map = geemap.Map()
 
-# === 1984 年 Landsat 5 ===
-collection_1984 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2') \
-    .filterDate('1984-01-01', '1985-12-31') \
+# === 1994 年 Landsat 5 ===
+collection_1994 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2') \
+    .filterDate('1994-01-01', '1994-12-31') \
     .filterBounds(aoi) \
     .sort('CLOUD_COVER')
 
-count = collection_1984.size().getInfo()
-st.write(f"📷 1984 年符合條件的影像數量：{count}")
+count = collection_1994.size().getInfo()
+st.write(f"📷 1994 年符合條件的影像數量：{count}")
 
 if count == 0:
     st.error("❌ 找不到符合條件的 1984 年 Landsat 影像。請嘗試放寬搜尋條件。")
     st.stop()
 
-image_1984 = collection_1984.first()
+image_1994 = collection_1994.first()
 
 
-if image_1984 is None:
+if image_1994 is None:
     st.error("❌ 找不到符合條件的 1984 年 Landsat 影像。")
     st.stop()
 else:
-    band_names_1984 = image_1984.bandNames().getInfo()
-    st.write("✅ 1984 影像波段名稱:", band_names_1984)
+    band_names_1994 = image_1984.bandNames().getInfo()
+    st.write("✅ 1994 影像波段名稱:", band_names_1984)
 
 # 若波段名稱確認沒問題，才進行轉換與選取
 try:
-    image1984_rgb = image_1984.select(['SR_B3', 'SR_B2', 'SR_B1']) \
+    image1994_rgb = image_1994.select(['SR_B3', 'SR_B2', 'SR_B1']) \
         .multiply(0.0000275).add(-0.2) \
         .rename(['SR_B3', 'SR_B2', 'SR_B1'])
 except Exception as e:
@@ -73,11 +73,11 @@ else:
 image2024_rgb = image_2024.select(['B4', 'B3', 'B2'])
 
 # 視覺化參數
-vis_1984 = {'min': 0.0, 'max': 0.3, 'bands': ['SR_B3', 'SR_B2', 'SR_B1']}
+vis_1994 = {'min': 0.0, 'max': 0.3, 'bands': ['SR_B3', 'SR_B2', 'SR_B1']}
 vis_2024 = {'min': 0, 'max': 3000, 'bands': ['B4', 'B3', 'B2']}
 
 # 圖層
-left_layer = geemap.ee_tile_layer(image1984_rgb, vis_1984, '1984 真色')
+left_layer = geemap.ee_tile_layer(image1994_rgb, vis_1994, '1984 真色')
 right_layer = geemap.ee_tile_layer(image2024_rgb, vis_2024, '2024 真色')
 
 # 顯示地圖
