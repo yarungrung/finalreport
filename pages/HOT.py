@@ -1,7 +1,7 @@
 import streamlit as st
 import ee
 from google.oauth2 import service_account
-import geemap.foliumap as geemap
+import geemap.foliumap as geemap # 確保這一行存在！
 import json
 
 # --- Streamlit 應用程式設定 ---
@@ -10,12 +10,13 @@ st.title("南科周圍都市熱區🌍")
 
 # --- GEE 服務帳戶驗證 ---
 try:
-    service_account_info = st.secrets["GEE_SERVICE_ACCOUNT"]
+    service_account_info_raw = st.secrets["GEE_SERVICE_ACCOUNT"]
 
-    # 檢查 service_account_info 是否為字串，如果是，則嘗試解析為 JSON
-    # 這是為了兼容 Streamlit secrets 可能的兩種解析方式
-    if isinstance(service_account_info, str):
-        service_account_info = json.loads(service_account_info)
+    # 嘗試將其解析為 JSON，如果失敗，則假設它已經是字典
+    if isinstance(service_account_info_raw, str):
+        service_account_info = json.loads(service_account_info_raw)
+    else: # 它可能已經是 AttrDict 或 dict
+        service_account_info = service_account_info_raw
 
     credentials = service_account.Credentials.from_service_account_info(
         service_account_info,
@@ -25,27 +26,25 @@ try:
     st.success("Google Earth Engine 已成功初始化！")
 except Exception as e:
     st.error(f"初始化 Google Earth Engine 失敗: {e}")
-    st.info("請確認你的 Streamlit Secrets 中已正確設定 'GEE_SERVICE_ACCOUNT'。")
-    st.stop()
+    st.info("請確認你的 Streamlit Secrets 中已正確設定 'GEE_SERVICE_ACCOUNT'，並確認其為有效的 JSON 格式或已正確載入。")
+    st.stop() # 停止程式運行，直到 GEE 驗證成功
 
-# --- 定義 AOI 座標和日期參數 (直接使用可哈希類型) ---
-aoi_coords = [120.265429, 23.057127, 120.362146, 23.115991] # 使用列表，稍後在函數內部轉換為 ee.Geometry
-startDate = '2015-01-01'
-endDate = '2015-04-30'
-
-# 將 AOI 定義為 ee.Geometry.Rectangle 在主腳本流中
+# 如果 GEE 初始化成功，則繼續執行地圖和數據處理
+# ... (你的其餘程式碼從這裡開始) ...
+aoi_coords = [120.265429, 23.057127, 120.362146, 23.115991]
 aoi = ee.Geometry.Rectangle(aoi_coords)
 
-
-# --- 地圖物件 ---
 Map = geemap.Map()
 Map.addLayer(aoi, {}, 'AOI - TAINAN')
 Map.centerObject(aoi, 12)
-
-# --- 顯示地圖 ---
 st.write("### 區域概覽")
 Map.to_streamlit(height=500)
+# ... (其餘的 get_processed_image, NDVI, LST 計算和顯示代碼) ...
 
+# 確保所有調用 geemap.Map() 的地方都正確，例如：
+# Map_true_color = geemap.Map(center=Map.center, zoom=Map.zoom)
+# Map_ndvi = geemap.Map(center=Map.center, zoom=Map.zoom)
+# Map_lst = geemap.Map(center=Map.center, zoom=Map.zoom)
 # --- 函數定義 ---
 # 應用縮放因子
 def applyScaleFactors(image):
