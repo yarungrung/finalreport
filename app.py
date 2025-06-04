@@ -43,5 +43,5 @@ st.title("利用擴充器示範")
 
 with st.expander("展示timelapse檔"):
     st.image("1894-2000 南科timelapse.png")
-    st.image(2001-2019 南科timelapse.png")
+    st.image("2001-2019 南科timelapse.png")
     st.image("2020-2025 南科timelapse.png")
