@@ -7,7 +7,7 @@ st.title("南部科學園區發展與周遭環境變遷")
 
 st.markdown(
     """
-    以南科，， [streamlit](https://streamlit.io), [GEE](https://earthengine.google.com/), 
+    以南科為主軸，討論因為南科的出現、發展使周遭產生了哪些面向的變化，故以「南科興建前後的衛星影像對比」、「土地使用變化」及「周遭都市熱島的出現」三大面向討論。， [streamlit](https://streamlit.io), [GEE](https://earthengine.google.com/), 
     [geemap](https://leafmap.org) and [leafmap](https://leafmap.org). 
     """
 )
