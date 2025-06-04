@@ -20,7 +20,7 @@ center_point = ee.Geometry.Point([120.3138, 23.0865])
 aoi = center_point.buffer(3000)
 
 # ✅ 建立地圖
-my_Map = geemap.Map()
+my_Map = geemap.Map(center=[23.0865, 120.3138], zoom=13)
 my_Map.centerObject(aoi, 13)
 
 # === 1994 年 Landsat 5 ===
