@@ -24,12 +24,19 @@ my_Map = geemap.Map()
 
 # === 1984 年 Landsat 5 ===
 collection_1984 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2') \
-    .filterDate('1984-01-01', '1984-12-31') \
+    .filterDate('1984-01-01', '1985-12-31') \
     .filterBounds(aoi) \
-    .filter(ee.Filter.lt('CLOUD_COVER', 50)) \
     .sort('CLOUD_COVER')
 
+count = collection_1984.size().getInfo()
+st.write(f"📷 1984 年符合條件的影像數量：{count}")
+
+if count == 0:
+    st.error("❌ 找不到符合條件的 1984 年 Landsat 影像。請嘗試放寬搜尋條件。")
+    st.stop()
+
 image_1984 = collection_1984.first()
+
 
 if image_1984 is None:
     st.error("❌ 找不到符合條件的 1984 年 Landsat 影像。")
