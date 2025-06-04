@@ -97,6 +97,8 @@ visualization = {
     'min': 0.0,
     'max': 0.3
 }
+
+center = 23.110567, 120.273124
 Map_true_color = geemap.Map(center=Map.center, zoom=Map.zoom)
 Map_true_color.addLayer(image, visualization, 'True Color 432')
 Map_true_color.to_streamlit(height=500)
