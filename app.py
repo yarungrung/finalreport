@@ -39,8 +39,6 @@ st.session_state['end_date'] = end_date
 st.success(f"目前選擇的日期區間為：{start_date} 到 {end_date}")
 
 
-st.title("展示timelapse檔")
-
 with st.expander("南科timelapse"):
     st.image("1894-2000 南科timelapse.png")
     st.image("2001-2019 南科timelapse.png")
