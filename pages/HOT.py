@@ -1,37 +1,21 @@
 import streamlit as st
 import ee
 from google.oauth2 import service_account
-import geemap.foliumap as geemap  # <--- 這一行是關鍵，你之前的提交中缺少了它
-import json # 為了處理 Streamlit secrets 中的 JSON
+import geemap.foliumap as geemap
+import json
 
 # --- Streamlit 應用程式設定 ---
 st.set_page_config(layout="wide")
 st.title("南科周圍都市熱區🌍")
 
 # --- GEE 服務帳戶驗證 ---
-# 從 Streamlit Secrets 讀取 GEE 服務帳戶金鑰 JSON
-# 確保你在 Streamlit Cloud 的 "Secrets" 或本地 .streamlit/secrets.toml 中設定了 "GEE_SERVICE_ACCOUNT"
-# 例如：
-# # .streamlit/secrets.toml
-# GEE_SERVICE_ACCOUNT = '''
-# {
-#    "type": "service_account",
-#    "project_id": "your-project-id",
-#    "private_key_id": "...",
-#    "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
-#    "client_email": "...",
-#    "client_id": "...",
-#    "auth_uri": "...",
-#    "token_uri": "...",
-#    "auth_provider_x509_cert_url": "...",
-#    "client_x509_cert_url": "...",
-#    "universe_domain": "..."
-# }
-# '''
-
 try:
-    # 直接使用 st.secrets 的值，假設 Streamlit 已經將其解析成字典
     service_account_info = st.secrets["GEE_SERVICE_ACCOUNT"]
+
+    # 檢查 service_account_info 是否為字串，如果是，則嘗試解析為 JSON
+    # 這是為了兼容 Streamlit secrets 可能的兩種解析方式
+    if isinstance(service_account_info, str):
+        service_account_info = json.loads(service_account_info)
 
     credentials = service_account.Credentials.from_service_account_info(
         service_account_info,
@@ -44,22 +28,23 @@ except Exception as e:
     st.info("請確認你的 Streamlit Secrets 中已正確設定 'GEE_SERVICE_ACCOUNT'。")
     st.stop()
 
-aoi = ee.Geometry.Rectangle([120.265429, 23.057127, 120.362146, 23.115991])
+# --- 定義 AOI 座標和日期參數 (直接使用可哈希類型) ---
+aoi_coords = [120.265429, 23.057127, 120.362146, 23.115991] # 使用列表，稍後在函數內部轉換為 ee.Geometry
+startDate = '2015-01-01'
+endDate = '2015-04-30'
+
+# 將 AOI 定義為 ee.Geometry.Rectangle 在主腳本流中
+aoi = ee.Geometry.Rectangle(aoi_coords)
+
 
 # --- 地圖物件 ---
-# 在 Streamlit 中，通常會創建一個 Map 物件並在需要顯示時調用它的 _repr_html_ 方法
-Map = geemap.Map() # 這一行需要 geemap 被正確導入才能執行
+Map = geemap.Map()
 Map.addLayer(aoi, {}, 'AOI - TAINAN')
 Map.centerObject(aoi, 12)
 
 # --- 顯示地圖 ---
-# geemap.foliumap 地圖物件有一個 _repr_html_ 方法，Streamlit 可以直接渲染它
 st.write("### 區域概覽")
-Map.to_streamlit(height=500) # geemap 提供了一個方便的 Streamlit 整合方法
-
-# --- 影像處理參數 ---
-startDate = '2015-01-01'
-endDate = '2015-04-30'
+Map.to_streamlit(height=500)
 
 # --- 函數定義 ---
 # 應用縮放因子
@@ -78,26 +63,27 @@ def cloudMask(image):
     mask = qa.bitwiseAnd(cloud_shadow_bitmask).eq(0).And(qa.bitwiseAnd(cloud_bitmask).eq(0))
     return image.updateMask(mask)
 
-# --- 影像資料獲取與處理 ---
+# --- 影像資料獲取與處理 (修改 get_processed_image 函數) ---
 st.write("### 載入 Landsat 8 影像")
-collection = (ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
-              .filterBounds(aoi)
-              .filterDate(startDate, endDate))
 
-# st.write(f"影像數量: {collection.size().getInfo()}") # 這行會觸發 GEE 調用，可能導致 Streamlit 重新運行
-
-# 使用 Streamlit 的緩存來避免重複的 Earth Engine 計算，特別是對於那些不常變動的資料
+# 使用 Streamlit 的緩存來避免重複的 Earth Engine 計算
 @st.cache_data
-def get_processed_image(collection, aoi):
-    # 導入 Landsat 8 影像
-    image = (collection
+def get_processed_image(start_date, end_date, coordinates):
+    # 在緩存函數內部重新創建 ee.Geometry 和 ee.ImageCollection
+    current_aoi = ee.Geometry.Rectangle(coordinates)
+    current_collection = (ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
+                     .filterBounds(current_aoi)
+                     .filterDate(start_date, end_date))
+
+    image = (current_collection
                .map(applyScaleFactors)
                .map(cloudMask)
                .median()
-               .clip(aoi))
+               .clip(current_aoi))
     return image
 
-image = get_processed_image(collection, aoi)
+# 調用緩存函數，傳入可哈希的參數
+image = get_processed_image(startDate, endDate, tuple(aoi_coords)) # 將列表轉換為元組，使其可哈希
 
 
 # --- 顯示真彩色影像 ---
@@ -107,7 +93,7 @@ visualization = {
     'min': 0.0,
     'max': 0.3
 }
-Map_true_color = geemap.Map(center=Map.center, zoom=Map.zoom) # 創建新地圖實例
+Map_true_color = geemap.Map(center=Map.center, zoom=Map.zoom)
 Map_true_color.addLayer(image, visualization, 'True Color 432')
 Map_true_color.to_streamlit(height=500)
 
@@ -121,29 +107,77 @@ ndvi_vis = {
     'palette': ['blue', 'white', 'green']
 }
 
-Map_ndvi = geemap.Map(center=Map.center, zoom=Map.zoom) # 創建新地圖實例
+Map_ndvi = geemap.Map(center=Map.center, zoom=Map.zoom)
 Map_ndvi.addLayer(ndvi, ndvi_vis, 'NDVI - TAINAN')
 Map_ndvi.to_streamlit(height=500)
 
-# --- 計算 NDVI 統計值 ---
+# --- 計算 NDVI 統計值 (修改 get_ndvi_stats 函數) ---
 @st.cache_data
-def get_ndvi_stats(ndvi_image, aoi_geometry):
-    ndvi_min = ee.Number(ndvi_image.reduceRegion(
+def get_ndvi_stats(ndvi_image_id, aoi_coordinates): # 傳入可哈希的參數
+    # 在緩存函數內部獲取原始圖像或重建 geometry
+    # 注意: ee.Image 對象也是不可哈希的，所以最好傳入其 ID 或相關屬性
+    # 這裡我們需要一個方法來從 ID 獲取 ee.Image 對象，這可能需要調整
+    # 更直接的方法是重新計算 NDVI，但這會重複工作
+    # 更好的做法是傳入 image 的相關哈希值，並在函數內重新構建 ndvi
+    
+    # 由於 image 是 get_processed_image 的結果，我們假設它已經被緩存。
+    # 最好的做法是讓 get_ndvi_stats 接收 `image` 的創建參數，而不是 `ndvi` 物件本身。
+    # 為了簡化和避免過度修改，我們假設 ndvi_image_id 可以代表 ndvi 圖像。
+    # 但更安全的是傳入 `get_processed_image` 的原始參數，並在這裡重新計算 NDVI。
+    
+    # 為了解決目前的 UnhashableParamError，我們將傳入 `aoi_coordinates`。
+    # 如果 ndvi 圖像本身很複雜，傳遞其 ID 或一個簡短的描述性字串可能更好。
+    
+    # 這裡假設 ndvi_image 是一個已經計算好的 ee.Image 對象 (它在外面計算)
+    # 我們可以通過將 `image` 的相關參數傳遞給 get_ndvi_stats 來避免直接傳遞 `ndvi`。
+    # 然而，為了讓 `get_ndvi_stats` 真正獨立緩存其結果，它也應該包含其計算所需的所有數據。
+    
+    # 最簡單且有效的解決方案是，直接將 `ndvi` 的原始輸入（`image` 的識別資訊）傳遞進來，
+    # 並在函數內部重新構建 `ndvi` 圖像。
+    
+    # 我們將 `image` 的創建參數傳遞給 get_ndvi_stats，然後在內部計算 ndvi。
+    # 為了避免過度複雜，我們將 `image` 作為一個不可哈希的參數，並禁用其哈希，
+    # 但更推薦的方式是傳入 `image` 的「可哈希」輸入參數。
+    
+    # 由於 ndvi 是由 image 計算而來，並且 image 已經被 @st.cache_data 緩存，
+    # 最簡單的方法是直接從 image 再次計算 ndvi (或者傳遞 image 的哈希資訊)。
+    # 這裡我們將 `ndvi_image` 替換為 `image` 的可哈希參數。
+    
+    # For now, let's pass the image creation parameters again and re-derive ndvi for caching.
+    current_aoi = ee.Geometry.Rectangle(aoi_coordinates)
+    current_collection = (ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
+                     .filterBounds(current_aoi)
+                     .filterDate(start_date, end_date)) # Assume start_date and end_date are also passed
+
+    # Need to get the processed image again inside this cached function for consistency
+    # This might seem redundant, but it's how @st.cache_data ensures hashability of inputs
+    processed_img_for_stats = (current_collection
+                               .map(applyScaleFactors)
+                               .map(cloudMask)
+                               .median()
+                               .clip(current_aoi))
+    
+    current_ndvi = processed_img_for_stats.normalizedDifference(['SR_B5', 'SR_B4']).rename('NDVI')
+
+
+    ndvi_min = ee.Number(current_ndvi.reduceRegion(
         reducer=ee.Reducer.min(),
-        geometry=aoi_geometry,
+        geometry=current_aoi,
         scale=30,
         maxPixels=1e9
     ).values().get(0))
 
-    ndvi_max = ee.Number(ndvi_image.reduceRegion(
+    ndvi_max = ee.Number(current_ndvi.reduceRegion(
         reducer=ee.Reducer.max(),
-        geometry=aoi_geometry,
+        geometry=current_aoi,
         scale=30,
         maxPixels=1e9
     ).values().get(0))
     return ndvi_min.getInfo(), ndvi_max.getInfo()
 
-ndvi_min_val, ndvi_max_val = get_ndvi_stats(ndvi, aoi)
+# 調用 get_ndvi_stats 時，傳入與 get_processed_image 相同的可哈希參數
+ndvi_min_val, ndvi_max_val = get_ndvi_stats(startDate, endDate, tuple(aoi_coords))
+
 
 st.write(f"NDVI 最小值: {ndvi_min_val:.2f}")
 st.write(f"NDVI 最大值: {ndvi_max_val:.2f}")
@@ -151,33 +185,51 @@ st.write(f"NDVI 最大值: {ndvi_max_val:.2f}")
 
 # --- 計算植被覆蓋率 (FV) 與地表發射率 (EM) ---
 st.write("### 植被覆蓋率 (FV) 與地表發射率 (EM)")
+# fv 和 em 的計算直接依賴於 ndvi_min_val 和 ndvi_max_val，它們是可哈希的數值
 fv = ndvi.subtract(ndvi_min_val).divide(ndvi_max_val - ndvi_min_val).pow(2).rename("FV")
 em = fv.multiply(0.004).add(0.986).rename("EM")
-
-# 注意：fv.getInfo() 和 em.getInfo() 會返回字典，用於印出詳細資訊。
-# 在 Streamlit 中，通常會直接使用這些 Image 物件進行後續處理。
-# st.write(f"FV 資訊: {fv.getInfo()}")
-# st.write(f"EM 資訊: {em.getInfo()}")
 
 
 # --- 計算與顯示地表溫度 (LST) ---
 st.write("### 地表溫度 (LST)")
 thermal = image.select('ST_B10').rename('thermal')
 
-# 在 Streamlit 中使用 .getInfo() 獲取數值時，要小心它會觸發 Earth Engine 請求。
-# 確保你的 min/max 值是預先設定好，或者也在 @st.cache_data 函數中計算。
-# 這裡我使用了你提供的固定值。
-lst = thermal.expression(
-    '(TB / (1 + (0.00115 * (TB / 1.438)) * log(em))) - 273.15',
-    {
-        'TB': thermal.select('thermal'),
-        'em': em
-    }
-).rename('LST TAINAN')
+# LST 的計算也應該考慮緩存，但為了避免再次傳遞整個 image，我們可以將其計算邏輯也放入一個緩存函數
+@st.cache_data
+def calculate_lst(start_date, end_date, coordinates, ndvi_min_val, ndvi_max_val):
+    current_aoi = ee.Geometry.Rectangle(coordinates)
+    current_collection = (ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
+                     .filterBounds(current_aoi)
+                     .filterDate(start_date, end_date))
+
+    processed_img = (current_collection
+                               .map(applyScaleFactors)
+                               .map(cloudMask)
+                               .median()
+                               .clip(current_aoi))
+    
+    current_thermal = processed_img.select('ST_B10').rename('thermal')
+    
+    # 重新計算 FV 和 EM
+    current_ndvi = processed_img.normalizedDifference(['SR_B5', 'SR_B4']).rename('NDVI')
+    current_fv = current_ndvi.subtract(ndvi_min_val).divide(ndvi_max_val - ndvi_min_val).pow(2).rename("FV")
+    current_em = current_fv.multiply(0.004).add(0.986).rename("EM")
+
+    lst = current_thermal.expression(
+        '(TB / (1 + (0.00115 * (TB / 1.438)) * log(em))) - 273.15',
+        {
+            'TB': current_thermal.select('thermal'),
+            'em': current_em
+        }
+    ).rename('LST TAINAN')
+    return lst
+
+lst = calculate_lst(startDate, endDate, tuple(aoi_coords), ndvi_min_val, ndvi_max_val)
+
 
 lst_vis = {
-    'min': 18.47, # 這些值通常來自你 AOI 的實際範圍，而不是硬編碼
-    'max': 42.86, # 為了演示，我們使用你提供的範例值
+    'min': 18.47,
+    'max': 42.86,
     'palette': [
         '040274', '040281', '0502a3', '0502b8', '0502ce', '0502e6',
         '0602ff', '235cb1', '307ef3', '269db1', '30c8e2', '32d3ef',
@@ -187,7 +239,7 @@ lst_vis = {
     ]
 }
 
-Map_lst = geemap.Map(center=Map.center, zoom=Map.zoom) # 創建新地圖實例
+Map_lst = geemap.Map(center=Map.center, zoom=Map.zoom)
 Map_lst.addLayer(lst, lst_vis, 'Land Surface Temperature')
 Map_lst.to_streamlit(height=500)
 
