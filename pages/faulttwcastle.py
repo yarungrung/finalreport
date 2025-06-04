@@ -8,12 +8,13 @@ st.markdown("""
 """)
 # 直接顯示 GitHub 上的圖片（使用 raw 連結）
 st.image("https://github.com/yarungrung/finalreport/blob/main/messageImage_1748418519805.jpg", caption="圖：在QGIS中失敗的台灣堡圖樣貌", use_column_width=True)
-
-# 加上說明文字
 st.markdown("""
 這張圖展示colab中失敗的台灣堡圖樣貌
 """)
 st.image("https://github.com/yarungrung/finalreport/blob/main/messageImage_1749027154085.jpg", caption="圖：在colab中失敗的台灣堡圖樣貌", use_column_width=True)
+
+
+
 
 # 加上說明文字
 st.markdown("""
