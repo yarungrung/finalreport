@@ -31,8 +31,7 @@ collection_1994 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2') \
 
 image_1994 = collection_1994.select(['SR_B3', 'SR_B2', 'SR_B1']) \
     .median() \
-    .multiply(0.0000275).add(-0.2) \
-    .clip(aoi)
+    .multiply(0.0000275).add(-0.2)
 
 vis_1994 = {
     'min': 0.0,
