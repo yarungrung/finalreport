@@ -12,9 +12,10 @@ st.markdown(
     """
 )
 
+st.set_page_config(layout="wide") 
 st.title("南科發展史")
-
-
+# 圖片
+st.image("    ")
 
 st.title("展示timelapse檔")
 st.markdown("### 南科 Timelapse")
