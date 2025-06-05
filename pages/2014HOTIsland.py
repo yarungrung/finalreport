@@ -32,9 +32,9 @@ except Exception as e:
 # --- 只有當 GEE 初始化成功後，才會執行以下代碼 ---
 
 # --- 定義 AOI 座標和日期參數 ---
-aoi_coords = [120.174618, 23.057127, 120.362146, 23.134487]
-startDate = '2014-01-01'
-endDate = '2014-12-31'
+aoi_coords = [120.265429, 23.057127, 120.362146, 23.115991]
+startDate = '2015-01-01'
+endDate = '2015-04-30'
 
 # 將 AOI 定義為 ee.Geometry.Rectangle
 aoi = ee.Geometry.Rectangle(aoi_coords)
