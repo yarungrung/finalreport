@@ -33,8 +33,8 @@ except Exception as e:
 
 # --- 定義 AOI 座標和日期參數 ---
 aoi_coords = [120.174618, 23.008626, 120.297048, 23.069197]
-startDate = '2015-01-01'
-endDate = '2015-4-30'
+startDate = '2014-01-01'
+endDate = '2014-12-31'
 
 # 將 AOI 定義為 ee.Geometry.Rectangle
 aoi = ee.Geometry.Rectangle(aoi_coords)
