@@ -84,7 +84,7 @@ def get_processed_image(start_date, end_date, coordinates):
 image = get_processed_image(startDate, endDate, tuple(aoi_coords))
 
 # --- 顯示真彩色影像 ---
-st.markdown("### 真彩色影像 (B4-B3-B2)")
+st.markdown("### 1.真彩色影像 (B4-B3-B2)")
 visualization = {
     'bands': ['SR_B4', 'SR_B3', 'SR_B2'],
     'min': 0.0,
@@ -99,7 +99,7 @@ Map_true_color.to_streamlit(height=500)
 
 
 # --- 計算與顯示 NDVI ---
-st.write("### NDVI (正規化差異植被指數)")
+st.write("### 2.NDVI (正規化差異植被指數)")
 ndvi = image.normalizedDifference(['SR_B5', 'SR_B4']).rename('NDVI')
 ndvi_vis = {
     'min': -1,
@@ -151,13 +151,13 @@ st.write(f"NDVI 最大值: {ndvi_max_val:.2f}")
 
 
 # --- 計算植被覆蓋率 (FV) 與地表發射率 (EM) ---
-st.write("### 植被覆蓋率 (FV) 與地表發射率 (EM)")
+st.write("### 3.植被覆蓋率 (FV) 與地表發射率 (EM)")
 fv = ndvi.subtract(ndvi_min_val).divide(ndvi_max_val - ndvi_min_val).pow(2).rename("FV")
 em = fv.multiply(0.004).add(0.986).rename("EM")
 
 
 # --- 計算與顯示地表溫度 (LST) ---
-st.write("### 地表溫度 (LST)")
+st.write("### 4.地表溫度 (LST)")
 @st.cache_data
 def calculate_lst(start_date, end_date, coordinates, ndvi_min_val, ndvi_max_val):
     current_aoi = ee.Geometry.Rectangle(coordinates)
