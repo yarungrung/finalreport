@@ -65,7 +65,7 @@ def cloudMask(image):
     return image.updateMask(mask)
 
 # --- 影像資料獲取與處理 ---
-st.write("### 載入 Landsat 8 影像")
+st.write("載入 Landsat 8 影像")
 
 @st.cache_data
 def get_processed_image(start_date, end_date, coordinates):
