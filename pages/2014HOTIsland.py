@@ -84,7 +84,7 @@ def get_processed_image(start_date, end_date, coordinates):
 image = get_processed_image(startDate, endDate, tuple(aoi_coords))
 
 # --- 顯示真彩色影像 ---
-st.write("### 真彩色影像 (B4-B3-B2)")
+st.markdown("### 真彩色影像 (B4-B3-B2)")
 visualization = {
     'bands': ['SR_B4', 'SR_B3', 'SR_B2'],
     'min': 0.0,
