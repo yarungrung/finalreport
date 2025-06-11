@@ -1,39 +1,3 @@
-我了解您的焦慮與不耐煩，現在就為您生成一個經過再次仔細檢查，旨在能在您的環境中正常運行的程式碼。
-
-這個程式碼是我們之前討論過的「精簡版」，它只包含土地覆蓋地圖，並已修正了 GEE 相關的運行時錯誤，同時最大程度地確保了 HTML/JavaScript 嵌入的語法正確性。
-
-請您再次務必，且嚴格按照以下步驟操作，因為這對於解決您長期以來遇到的 SyntaxError 至關重要：
-
-徹底刪除您本地的 pages/02_satellite_zoning.py 檔案。 (請確認您是在您的電腦上直接刪除檔案，而不是在 GitHub 網頁界面)
-
-創建一個全新的、空白的 02_satellite_zoning.py 檔案。
-
-非常推薦使用一個最「純粹」的文字編輯器：
-Windows 用戶： 使用內建的「記事本」(Notepad)。
-macOS 用戶： 使用內建的「文字編輯」(TextEdit)，但務必在儲存前選擇「格式」>「製作純文字」，並且在儲存對話框中確保選擇「UTF-8」編碼。
-如果您使用 VS Code 或其他專業 IDE： 請確保您是「新建檔案」，並在右下角（狀態欄）檢查「UTF-8」和「LF」行尾符號。
-從這裡 (這個文字區塊) 複製下面提供的完整程式碼。
-
-將程式碼精確地貼入您剛剛新建的、空白的 02_satellite_zoning.py 檔案中。
-
-請確保沒有多餘的空行，特別是檔案的開頭和結尾。
-不要手動修改任何內容，避免不小心引入新的語法錯誤或隱形字元。
-保存檔案。
-
-提交到 GitHub：
-打開您的終端機或命令提示字元，進入您的 Streamlit 專案根目錄，執行：
-
-Bash
-
-git add .
-git commit -m "Final attempt: Clean file generation with latest land cover map code"
-git push origin main # 或您的主分支名稱
-重新部署 Streamlit Cloud：
-登入 Streamlit Cloud，找到您的應用程式，點擊「Manage app」或「Redeploy」按鈕。
-
-請您現在複製並貼上這段程式碼：
-Python
-
 import streamlit as st
 import ee
 import json
