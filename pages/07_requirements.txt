@@ -2,5 +2,3 @@ streamlit
 earthengine-api
 geemap
 google-auth
-folium
-streamlit-folium
