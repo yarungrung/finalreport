@@ -118,7 +118,7 @@ def get_sentinel2_true_color_image(year):
 
     # Attempt to get the first image. If the collection is empty, .first() returns None.
     # We use .or(ee.Image(0)) to ensure we always get an ee.Image object back from GEE.
-    image = s2_collection.first().or(ee.Image(0)) # <-- Added .or(ee.Image(0)) for robustness
+    image = s2_collection.first().or(ee.Image(0))
 
     # 視覺化參數 (真色：B4(紅), B3(綠), B2(藍))
     s2_vis_params = {
