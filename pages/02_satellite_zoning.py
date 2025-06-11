@@ -82,7 +82,7 @@ def get_land_cover_image(year):
         elif year > 1995 and year < 2000:
             st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，將顯示 1995 年的數據。")
             image = glc_five_yearly.filter(ee.Filter.eq('year', 1995)).first()
-        else: # 這裡的縮排已修正
+        else:
             st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，將顯示 1985 年的數據。")
             image = glc_five_yearly.filter(ee.Filter.eq('year', 1985)).first()
     elif year > 2022:
@@ -93,15 +93,27 @@ def get_land_cover_image(year):
         return ee.Image(0) # 返回一個空白影像，避免 TypeError
 
     try:
-        if image and image.bandNames().size().getInfo() > 0:
-            clipped_image = image.clip(taiwan_aoi)
-            return clipped_image
+        # Check if the image object itself is valid (not None from .first() if collection was empty)
+        # and then check its band names.
+        if image: # First, check if 'image' is not None
+            # Attempt to get info, but wrap in another try-except for robustness
+            try:
+                if image.bandNames().size().getInfo() > 0:
+                    clipped_image = image.clip(taiwan_aoi)
+                    return clipped_image
+                else:
+                    st.warning(f"在 {year} 年份未能成功獲取土地覆蓋數據，影像可能為空 (無波段)。")
+                    return ee.Image(0) # 返回一個空白影像
+            except ee.EEException as ee_inner_e:
+                st.error(f"獲取 {year} 年份土地覆蓋數據時內部 Earth Engine 錯誤：{ee_inner_e}")
+                return ee.Image(0) # 返回一個空白影像
         else:
-            st.warning(f"在 {year} 年份未能成功獲取土地覆蓋數據，影像可能為空。")
+            st.warning(f"在 {year} 年份未能成功獲取土地覆蓋數據 (影像物件為空)。")
             return ee.Image(0) # 返回一個空白影像
     except ee.EEException as e:
         st.error(f"獲取 {year} 年份土地覆蓋數據時發生 Earth Engine 錯誤：{e}")
         return ee.Image(0) # 返回一個空白影像
+
 
 # --- 函數：獲取指定年份的 Sentinel-2 真色影像 ---
 def get_sentinel2_true_color_image(year):
@@ -114,8 +126,9 @@ def get_sentinel2_true_color_image(year):
         .filterBounds(taiwan_aoi) \
         .sort('CLOUDY_PIXEL_PERCENTAGE') # 按雲量百分比排序，最低的在前
 
-    # 選擇雲量最低的影像
-    image = s2_collection.first()
+    # Attempt to get the first image. If the collection is empty, .first() returns None.
+    # We use .or(ee.Image(0)) to ensure we always get an ee.Image object back from GEE.
+    image = s2_collection.first().or(ee.Image(0)) # <-- Added .or(ee.Image(0)) for robustness
 
     # 視覺化參數 (真色：B4(紅), B3(綠), B2(藍))
     s2_vis_params = {
@@ -125,12 +138,23 @@ def get_sentinel2_true_color_image(year):
     }
     
     try:
-        # 檢查影像是否為空或無效
-        if image and image.bandNames().size().getInfo() > 0:
-            clipped_image = image.clip(taiwan_aoi)
-            return clipped_image, s2_vis_params
-        else:
-            st.warning(f"在 {year} 年份沒有足夠清晰的 Sentinel-2 影像數據。請嘗試其他年份或調整地圖範圍。")
+        # Check if the image object itself is valid (not just ee.Image(0) implicitly from .or())
+        # and then check its band names.
+        if image: # First, check if 'image' is not None (though .or() handles this mostly)
+            # Attempt to get info, but wrap in another try-except for robustness
+            try:
+                # Use bandNames().length() instead of size() for robustness. size() is for geometry.
+                if image.bandNames().length().getInfo() > 0: # <-- Changed size() to length()
+                    clipped_image = image.clip(taiwan_aoi)
+                    return clipped_image, s2_vis_params
+                else:
+                    st.warning(f"在 {year} 年份沒有足夠清晰的 Sentinel-2 影像數據，或影像無效 (無波段)。")
+                    return ee.Image(0), s2_vis_params # 返回空白影像
+            except ee.EEException as ee_inner_e:
+                st.error(f"獲取 {year} 年份 Sentinel-2 影像時內部 Earth Engine 錯誤：{ee_inner_e}")
+                return ee.Image(0), s2_vis_params # 返回空白影像
+        else: # This path should be less likely with .or(ee.Image(0)) but kept for safety.
+            st.warning(f"在 {year} 年份沒有足夠清晰的 Sentinel-2 影像數據 (影像物件為空)。")
             return ee.Image(0), s2_vis_params # 返回空白影像
     except ee.EEException as e:
         st.error(f"獲取 {year} 年份 Sentinel-2 影像時發生 Earth Engine 錯誤：{e}")
@@ -150,11 +174,27 @@ with col1:
     # 獲取 Sentinel-2 影像
     sentinel_image, s2_vis_params = get_sentinel2_true_color_image(selected_year)
 
-    map_id_dict_s2 = ee.data.getTileUrl({
-        'image': sentinel_image,
-        'visParams': s2_vis_params
-    })
-    tile_url_s2 = map_id_dict_s2['url']
+    # --- Debugging check ---
+    if not isinstance(sentinel_image, ee.Image):
+        st.error(f"偵測到 Sentinel-2 影像變數類型錯誤！預期 ee.Image，但實際為 {type(sentinel_image)}")
+        # If it's not an ee.Image, default to a blank image to prevent TypeError
+        sentinel_image = ee.Image(0) 
+        # You might also want to set s2_vis_params to a safe default if sentinel_image is blank
+        s2_vis_params = {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max': 1} # Minimal params for blank image
+    # --- End Debugging check ---
+
+    try:
+        map_id_dict_s2 = ee.data.getTileUrl({
+            'image': sentinel_image,
+            'visParams': s2_vis_params
+        })
+        tile_url_s2 = map_id_dict_s2['url']
+    except Exception as e:
+        st.error(f"無法為 Sentinel-2 影像獲取瓦片 URL。錯誤：{e}")
+        st.warning("將顯示預設的 OpenStreetMap 地圖。")
+        # Fallback to a placeholder tile URL if GEE fails
+        tile_url_s2 = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+
 
     html_code_s2 = f"""
     <!DOCTYPE html>
@@ -200,11 +240,25 @@ with col2:
     # 獲取土地覆蓋圖資
     land_cover_image = get_land_cover_image(selected_year)
     
-    map_id_dict_lc = ee.data.getTileUrl({
-        'image': land_cover_image,
-        'visParams': VIS_PARAMS
-    })
-    tile_url_lc = map_id_dict_lc['url']
+    # --- Debugging check ---
+    if not isinstance(land_cover_image, ee.Image):
+        st.error(f"偵測到土地覆蓋影像變數類型錯誤！預期 ee.Image，但實際為 {type(land_cover_image)}")
+        # If it's not an ee.Image, default to a blank image to prevent TypeError
+        land_cover_image = ee.Image(0)
+    # --- End Debugging check ---
+
+    try:
+        map_id_dict_lc = ee.data.getTileUrl({
+            'image': land_cover_image,
+            'visParams': VIS_PARAMS
+        })
+        tile_url_lc = map_id_dict_lc['url']
+    except Exception as e:
+        st.error(f"無法為土地覆蓋影像獲取瓦片 URL。錯誤：{e}")
+        st.warning("將顯示預設的 OpenStreetMap 地圖。")
+        # Fallback to a placeholder tile URL if GEE fails
+        tile_url_lc = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+
 
     html_code_lc = f"""
     <!DOCTYPE html>
@@ -273,3 +327,15 @@ with col2:
     </html>
     """
     html(html_code_lc, height=550)
+
+
+st.markdown("---")
+st.write("此應用使用 Google Earth Engine (GEE) 的 GLC_FCS30D 資料集顯示台灣的土地覆蓋變化，並透過 Leaflet.js 呈現。")
+st.write("數據來源：[GLC_FCS30D (1985-2022)](https://gee-community-catalog.org/projects/glc_fcs/)")
+st.markdown("""
+    **注意事項：**
+    * GLC_FCS30D 在 2000 年前是每五年一個數據 (1985, 1990, 1995)，非年度數據。
+    * 對於 2023 和 2024 年，目前 GLC_FCS30D 尚未更新，程式碼會顯示 2022 年的數據。
+    * 土地覆蓋分類顏色僅為示意，詳細定義請參考原始資料集說明。
+    * Sentinel-2 真色影像可能因雲層覆蓋而無影像，或者在某些年份沒有足夠清晰的數據。
+""")
