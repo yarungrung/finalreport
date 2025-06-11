@@ -1,17 +1,17 @@
 import streamlit as st
 import ee
 from datetime import date
-import json # 用於處理 JSON 數據，特別是地圖邊界
-from streamlit.components.v1 import html # 引入 html 組件
-from google.oauth2 import service_account
+import json
+from streamlit.components.v1 import html
+from google.oauth2 import service_account # 確保這個也被 import 了
 
-# --- 將 st.set_page_config 放在所有 st.XXX() 命令的最前面 ---
+# 2. st.set_page_config() 必須是第一個 Streamlit 命令
 st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化", page_icon="🌎")
 
-st.title("台灣土地覆蓋變化分析 (1990 - 2024)") # <-- 這是第一個允許在 set_page_config 之後的 st. 命令
+# 3. 接下來才是其他 Streamlit 命令和你的應用邏輯
+st.title("台灣土地覆蓋變化分析 (1990 - 2024)")
 st.markdown("---")
 
-# ... 接下來才是 GEE 初始化、數據加載、函數定義等 ...
 # 從 Streamlit Secrets 讀取 GEE 服務帳戶金鑰 JSON
 service_account_info = st.secrets["GEE_SERVICE_ACCOUNT"]
 
@@ -20,7 +20,6 @@ credentials = service_account.Credentials.from_service_account_info(
     service_account_info,
     scopes=["https://www.googleapis.com/auth/earthengine"]
 )
-
 
 # 初始化 GEE
 ee.Initialize(credentials)
