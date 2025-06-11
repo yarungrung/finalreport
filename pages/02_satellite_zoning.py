@@ -60,39 +60,39 @@ def get_land_cover_image(year):
     image = None
     # Prioritize annual data (2000-2022)
     if 2000 <= year <= 2022:
-        image = glc_annual.filter(ee.Filter.eq('year', year)).first()
+        # Use .or(ee.Image(0)) here to ensure 'image' is always an ee.Image object,
+        # even if glc_annual.filter().first() returns None.
+        image = glc_annual.filter(ee.Filter.eq('year', year)).first().or(ee.Image(0))
     # Fallback to five-yearly data for earlier years (1985, 1990, 1995)
     elif year < 2000:
-        # Get the closest five-yearly data
         if year >= 1995:
-            image = glc_five_yearly.filter(ee.Filter.eq('year', 1995)).first()
+            image = glc_five_yearly.filter(ee.Filter.eq('year', 1995)).first().or(ee.Image(0))
             st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，顯示 1995 年的數據。")
         elif year >= 1990:
-            image = glc_five_yearly.filter(ee.Filter.eq('year', 1990)).first()
+            image = glc_five_yearly.filter(ee.Filter.eq('year', 1990)).first().or(ee.Image(0))
             st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，顯示 1990 年的數據。")
         else: # For years < 1990, default to 1985
-            image = glc_five_yearly.filter(ee.Filter.eq('year', 1985)).first()
+            image = glc_five_yearly.filter(ee.Filter.eq('year', 1985)).first().or(ee.Image(0))
             st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，顯示 1985 年的數據。")
     # For years beyond 2022, default to the latest available (2022)
     elif year > 2022:
-        image = glc_annual.filter(ee.Filter.eq('year', 2022)).first()
+        image = glc_annual.filter(ee.Filter.eq('year', 2022)).first().or(ee.Image(0))
         st.warning(f"注意：GLC_FCS30D 目前僅提供至 2022 年數據，顯示 2022 年的土地覆蓋圖。")
     
-    # Ensure an ee.Image object is always returned, even if previous filters yielded None
-    if image is None:
-        image = ee.Image(0) # Default to a blank image if nothing found
+    # At this point, 'image' should always be an ee.Image object (even if ee.Image(0))
 
     try:
-        # Check if the image has bands before clipping
+        # Check if the image has any bands (ee.Image(0) has no bands by default)
+        # Using getInfo() is a GEE call, so it needs to be inside try-except
         if image.bandNames().length().getInfo() > 0:
             clipped_image = image.clip(taiwan_aoi)
             return clipped_image
         else:
-            st.warning(f"未能獲取 {year} 年的土地覆蓋影像或影像為空。")
-            return ee.Image(0)
+            st.warning(f"未能獲取 {year} 年的土地覆蓋影像或影像為空 (無可用波段)。")
+            return ee.Image(0) # Return a blank image if no bands
     except ee.EEException as e:
         st.error(f"獲取 {year} 年土地覆蓋數據時發生 Earth Engine 錯誤：{e}")
-        return ee.Image(0)
+        return ee.Image(0) # Return a blank image on GEE error
 
 
 # --- Year Selector ---
@@ -104,13 +104,11 @@ st.subheader(f"土地覆蓋圖資 (GLC_FCS30D) - {selected_year} 年")
 # Get Land Cover Image
 land_cover_image = get_land_cover_image(selected_year)
 
-# Get Tile URL from GEE
+# Get Map ID from GEE (Corrected function for Leaflet tile layer)
 try:
-    map_id_dict_lc = ee.data.getTileUrl({
-        'image': land_cover_image,
-        'visParams': VIS_PARAMS
-    })
-    tile_url_lc = map_id_dict_lc['url']
+    # Use getMapId() instead of getTileUrl() for Leaflet integration
+    map_id_dict_lc = land_cover_image.getMapId(VIS_PARAMS)
+    tile_url_lc = map_id_dict_lc['tile_fetcher'].url_format # Access the URL from the map_id_dict
 except Exception as e:
     st.error(f"無法為土地覆蓋影像獲取瓦片 URL。錯誤：{e}")
     st.warning("將顯示預設的 OpenStreetMap 地圖。")
