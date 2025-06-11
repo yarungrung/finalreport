@@ -1,7 +1,7 @@
 import streamlit as st
 from datetime import date
 
-st.set_page_config(layout="wide", page_title="這是我們這組的Streamlit App！")
+st.set_page_config(layout="wide", page_title="南科學發展與周遭環境變遷Streamlit App！")
 
 st.title("南部科學園區發展與周遭環境變遷")
 
