@@ -82,9 +82,9 @@ def get_land_cover_image(year):
         elif year > 1995 and year < 2000:
             st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，將顯示 1995 年的數據。")
             image = glc_five_yearly.filter(ee.Filter.eq('year', 1995)).first()
-        else:
-             st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，將顯示 1985 年的數據。")
-             image = glc_five_yearly.filter(ee.Filter.eq('year', 1985)).first()
+        else: # 這裡的縮排已修正
+            st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，將顯示 1985 年的數據。")
+            image = glc_five_yearly.filter(ee.Filter.eq('year', 1985)).first()
     elif year > 2022:
         st.warning(f"注意：GLC_FCS30D 目前僅提供至 2022 年數據，將顯示 2022 年的土地覆蓋圖。")
         image = glc_annual.filter(ee.Filter.eq('year', 2022)).first()
@@ -273,6 +273,3 @@ with col2:
     </html>
     """
     html(html_code_lc, height=550)
-
-
----
