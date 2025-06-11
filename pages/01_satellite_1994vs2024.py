@@ -21,7 +21,7 @@ center_point = ee.Geometry.Point(center_coords)
 aoi = center_point.buffer(3000)
 
 # ✅ 建立地圖（指定中心與縮放）
-my_Map = geemap.Map(center=center_coords[::-1], zoom=13)
+my_Map = geemap.Map(center=center_coords[::-1], zoom=16)
 
 # === 1994 年 Landsat 5 處理 ===
 collection_1994 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2') \
@@ -76,8 +76,8 @@ my_Map.to_streamlit(height=600)
 st.markdown(""" 
 <p>
 對比南科還沒出現的1994和南科三期擴建結束的2024年之衛星影像圖，觀察結果： <br>
-1.路網，由稀疏轉為明顯且複雜 <br>
-2.住宅及建築物，1994多為田地，而2024年大多過去的田地轉變成了各式建築物 <br>
+1. 路網，由稀疏轉為明顯且複雜 <br>
+2. 住宅及建築物，1994多為田地，而2024年大多過去的田地轉變成了各式建築物 <br>
     </p>
     """,
     unsafe_allow_html=True 
