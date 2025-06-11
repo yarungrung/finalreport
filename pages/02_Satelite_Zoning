@@ -1,5 +1,3 @@
-
-
 import streamlit as st
 import ee
 import json
