@@ -13,16 +13,13 @@ st.markdown("---")
 
 # --- GEE 認證與初始化 ---
 try:
-    service_account_info = st.secrets["GEE_SERVICE_ACCOUNT"] # 從 Streamlit Secrets 讀取 GEE 服務帳戶金鑰 JSON  
-    # 使用 google-auth 進行 GEE 授權
-    credentials = service_account.Credentials.from_service_account_info(
-        service_account_info,
-        scopes=["https://www.googleapis.com/auth/earthengine"]
-    )
-
-    # 初始化 GEE
-    ee.Initialize(credentials)
-
+    ee.Initialize()
+    st.success("Google Earth Engine 已成功初始化！")
+except Exception as e:
+    st.error(f"Google Earth Engine 初始化失敗：{e}")
+    st.warning("請確認您已執行 `earthengine authenticate` 並授權 GEE 帳戶。")
+    st.stop() # 停止執行，因為沒有 GEE 就無法工作
+    
 # 定義台灣的範圍 (以南科為中心稍微放大)
 taiwan_aoi = ee.Geometry.Rectangle([120.174618, 23.008626, 120.297048, 23.069197])
 
