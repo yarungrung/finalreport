@@ -151,7 +151,6 @@ with col1:
         st.error(f"偵測到 Sentinel-2 影像變數類型錯誤！預期 ee.Image，但實際為 {type(sentinel_image)}。")
         # If it's not an ee.Image, default to a blank image to prevent TypeError
         sentinel_image = ee.Image(0) 
-        # You might also want to set s2_vis_params to a safe default if sentinel_image is blank
         s2_vis_params = {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max': 1} # Minimal params for blank image
     # --- End Debugging check ---
 
@@ -161,7 +160,6 @@ with col1:
             'visParams': s2_vis_params
         })
         tile_url_s2 = map_id_dict_s2['url']
-
 
     html_code_s2 = f"""
     <!DOCTYPE html>
