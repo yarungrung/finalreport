@@ -22,12 +22,12 @@ st.markdown("### 🌏網站介紹")
 st.markdown(
     """
      <p>
-    1.由下圖了解南科興建發展史<br>
-    2.以左右分科圖對比1994和2024年的衛星影像<br>
-    3.以自訂年份方式查閱各年南科周遭的土地監督式分類的模樣<br>
-    4.2014的都市熱島效應<br>
-    5.2024的都市熱島效應<br>
-    6.失敗紀錄：原先要匯入的台灣堡圖<br>
+    1.由下圖了解南科興建發展史 <br>
+    2.以左右分科圖對比1994和2024年的衛星影像 <br>
+    3.以自訂年份方式查閱各年南科周遭的土地監督式分類的模樣 <br>
+    4.2014的都市熱島效應 <br>
+    5.2024的都市熱島效應 <br>
+    6.失敗紀錄：原先要匯入的台灣堡圖 <br>
     </p>
     """,
     unsafe_allow_html=True
@@ -35,30 +35,3 @@ st.markdown(
 
 st.markdown("### 南科發展史")
 st.image("南科史2.jpg")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-st.markdown("### 南科 Timelapse")
-
-# 顯示三張並排的 timelapse
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.image("1984-2000.png", caption="1984-2000")
-
-with col2:
-    st.image("2001-2019 南科timelapse.png", caption="2001-2019")
-
-with col3:
-    st.image("2020-2025 南科timelapse.png", caption="2020-2025")
