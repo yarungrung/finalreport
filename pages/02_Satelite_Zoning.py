@@ -1,43 +1,55 @@
 import streamlit as st
 import ee
+from datetime import date
 import json
 from streamlit.components.v1 import html
 from google.oauth2 import service_account
 
-# Streamlit Page Configuration
-st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化 (精簡版)", page_icon="🌎")
+# 1. st.set_page_config() 必須是 Streamlit 腳本中執行的第一個 Streamlit 命令
+st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化", page_icon="🌎")
 
-st.title("台灣土地覆蓋變化分析 (精簡版) 🌍")
-st.markdown("此版本只顯示土地覆蓋圖資，並簡化了年份處理。")
+# 2. 接下來才是其他的 Streamlit 命令和你的應用邏輯
+st.title("台灣土地覆蓋變化分析 (1990 - 2024) 🌍")
+st.markdown("左右兩邊的地圖將同步顯示相同年份的衛星真色影像與土地覆蓋圖資。")
 st.markdown("---")
 
-# --- GEE Authentication and Initialization ---
+# --- GEE 認證與初始化 ---
 try:
+    # 從 Streamlit Secrets 讀取 GEE 服務帳戶金鑰 JSON
+    # 確保你的 .streamlit/secrets.toml 中有 [GEE_SERVICE_ACCOUNT] 段落
     service_account_info = st.secrets["GEE_SERVICE_ACCOUNT"]
+
+    # 使用 google-auth 進行 GEE 授權
     credentials = service_account.Credentials.from_service_account_info(
         service_account_info,
         scopes=["https://www.googleapis.com/auth/earthengine"]
     )
-    ee.Initialize(credentials)
-    st.sidebar.success("Google Earth Engine 已成功初始化。")
-except Exception as e:
-    st.sidebar.error(f"Google Earth Engine 初始化失敗：{e}")
-    st.sidebar.warning("請確認您已在 Streamlit Secrets 中正確配置 `GEE_SERVICE_ACCOUNT` 金鑰。")
-    st.stop() # Stop execution if GEE fails
 
-# --- Global Variables ---
-taiwan_aoi = ee.Geometry.Rectangle([119.8, 22.5, 120.8, 23.5]) # Taiwan Southwest coast AOI
+    # 初始化 GEE
+    ee.Initialize(credentials)
+except Exception as e:
+    st.error(f"Google Earth Engine 初始化失敗：{e}")
+    st.warning(f"請確認您已在 Streamlit Secrets 中正確配置 `GEE_SERVICE_ACCOUNT` 金鑰。錯誤詳情：`{e}`")
+    st.stop() # 停止執行，因為沒有 GEE 就無法工作
+
+
+# --- 全局變數定義 ---
+# 定義台灣的範圍 (以南科為中心稍微放大)
+taiwan_aoi = ee.Geometry.Rectangle([120.174618, 23.008626, 120.297048, 23.069197])
+
+# 獲取 AOI 的經緯度，用於初始化地圖中心
 coords = taiwan_aoi.centroid().coordinates().getInfo()
 center_lon, center_lat = coords[0], coords[1]
 
-# Load GLC_FCS30D dataset
+
+# --- 載入 GLC_FCS30D 資料集 ---
 glc_annual = ee.ImageCollection('projects/sat-io/open-datasets/GLC-FCS30D/annual')
 glc_five_yearly = ee.ImageCollection('projects/sat-io/open-datasets/GLC-FCS30D/five_yearly')
 
-# --- Land Cover Visualization Parameters and Legend ---
+# --- 定義土地覆蓋分類的視覺化參數和圖例 ---
 PALETTE = [
     '#00008B',  # 0: Water (Dark Blue)
-    '#DCDCDC',  # 10: Permanent snow and ice (Light Gray)
+    '#DCDCDC',  # 10: Permanent snow and ice (Light Gray) - unlikely to be shown
     '#FF0000',  # 20: Built-up land (Red)
     '#A0522D',  # 30: Bareland (Sienna)
     '#FFFF00',  # 40: Cropland (Yellow)
@@ -45,143 +57,263 @@ PALETTE = [
     '#8B4513',  # 60: Shrubland (Saddle Brown)
     '#006400',  # 70: Forest (Dark Green)
     '#87CEEB',  # 80: Wetland (Sky Blue)
-    '#FFFFFF',  # 90: Tundra (White)
+    '#FFFFFF',  # 90: Tundra (White) - unlikely to be shown
 ]
-
+labels = {
+    0: "Water (Dark Blue)",
+    10: " Permanent snow and ice (Light Gray)",
+    20: "Built-up land (Red)",
+    30: "Bareland (Sienna)",
+    40: "Cropland (Yellow)",
+    50: "Grassland (Green Yellow)",
+    60: "Shrubland (Saddle Brown)",
+    70: "Forest (Dark Green)",
+    80: "Wetland (Sky Blue)",
+    90: "Tundra (White)",
+}
 VIS_PARAMS = {
     'min': 0,
     'max': 90,
     'palette': PALETTE
 }
 
-# --- Function: Get Land Cover Image for a given year ---
-@st.cache_data(ttl=3600)
+# --- 函數：獲取指定年份的土地覆蓋圖層 ---
+@st.cache_data(ttl=3600) # 緩存數據，避免每次運行都重新獲取
 def get_land_cover_image(year):
     image = None
-    # Prioritize annual data (2000-2022)
-    if 2000 <= year <= 2022:
-        # Use .or(ee.Image(0)) here to ensure 'image' is always an ee.Image object,
-        # even if glc_annual.filter().first() returns None.
-        image = glc_annual.filter(ee.Filter.eq('year', year)).first().or(ee.Image(0))
-    # Fallback to five-yearly data for earlier years (1985, 1990, 1995)
-    elif year < 2000:
-        if year >= 1995:
-            image = glc_five_yearly.filter(ee.Filter.eq('year', 1995)).first().or(ee.Image(0))
-            st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，顯示 1995 年的數據。")
-        elif year >= 1990:
-            image = glc_five_yearly.filter(ee.Filter.eq('year', 1990)).first().or(ee.Image(0))
-            st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，顯示 1990 年的數據。")
-        else: # For years < 1990, default to 1985
-            image = glc_five_yearly.filter(ee.Filter.eq('year', 1985)).first().or(ee.Image(0))
-            st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，顯示 1985 年的數據。")
-    # For years beyond 2022, default to the latest available (2022)
-    elif year > 2022:
-        image = glc_annual.filter(ee.Filter.eq('year', 2022)).first().or(ee.Image(0))
-        st.warning(f"注意：GLC_FCS30D 目前僅提供至 2022 年數據，顯示 2022 年的土地覆蓋圖。")
-    
-    # At this point, 'image' should always be an ee.Image object (even if ee.Image(0))
-
-    try:
-        # Check if the image has any bands (ee.Image(0) has no bands by default)
-        # Using getInfo() is a GEE call, so it needs to be inside try-except
-        if image.bandNames().length().getInfo() > 0:
-            clipped_image = image.clip(taiwan_aoi)
-            return clipped_image
+    if year >= 2000 and year <= 2022:
+        image = glc_annual.filter(ee.Filter.eq('year', year)).first()
+    elif year >= 1985 and year < 2000:
+        if year == 1985:
+            image = glc_five_yearly.filter(ee.Filter.eq('year', 1985)).first()
+        elif year == 1990:
+            image = glc_five_yearly.filter(ee.Filter.eq('year', 1990)).first()
+        elif year == 1995:
+            image = glc_five_yearly.filter(ee.Filter.eq('year', 1995)).first()
+        elif year > 1995 and year < 2000:
+            st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，將顯示 1995 年的數據。")
+            image = glc_five_yearly.filter(ee.Filter.eq('year', 1995)).first()
         else:
-            st.warning(f"未能獲取 {year} 年的土地覆蓋影像或影像為空 (無可用波段)。")
-            return ee.Image(0) # Return a blank image if no bands
+            st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，將顯示 1985 年的數據。")
+            image = glc_five_yearly.filter(ee.Filter.eq('year', 1985)).first()
+    elif year > 2022:
+        st.warning(f"注意：GLC_FCS30D 目前僅提供至 2022 年數據，將顯示 2022 年的土地覆蓋圖。")
+        image = glc_annual.filter(ee.Filter.eq('year', 2022)).first()
+    else:
+        st.error("選擇的年份超出數據集範圍 (1985-2024)")
+        return ee.Image(0) # 返回一個空白影像，避免 TypeError
+
+
+# --- 函數：獲取指定年份的 Sentinel-2 真色影像 ---
+@st.cache_data(ttl=3600) # 緩存數據，避免每次運行都重新獲取
+def get_sentinel2_true_color_image(year):
+    # 選擇該年份的影像，並過濾雲量，選擇雲量最低的單一影像
+    start_date_str = f"{year}-01-01"
+    end_date_str = f"{year}-12-31"
+
+    s2_collection = ee.ImageCollection('COPERNICUS/S2_SR') \
+        .filterDate(start_date_str, end_date_str) \
+        .filterBounds(taiwan_aoi) \
+        .sort('CLOUDY_PIXEL_PERCENTAGE') # 按雲量百分比排序，最低的在前
+
+    # Attempt to get the first image. If the collection is empty, .first() returns None.
+    # We use .or(ee.Image(0)) to ensure we always get an ee.Image object back from GEE.
+    image = s2_collection.first().or(ee.Image(0)) # <-- Added .or(ee.Image(0)) for robustness
+
+    # 視覺化參數 (真色：B4(紅), B3(綠), B2(藍))
+    s2_vis_params = {
+        'bands': ['B4', 'B3', 'B2'],
+        'min': 0,
+        'max': 3000 # 調整最大值以獲得更好的對比度
+    }
+    
+    try:
+        if image:
+            try:
+                # Use bandNames().length() instead of size() for robustness.
+                if image.bandNames().length().getInfo() > 0:
+                    clipped_image = image.clip(taiwan_aoi)
+                    return clipped_image, s2_vis_params
+                else:
+                    st.warning(f"在 {year} 年份沒有足夠清晰的 Sentinel-2 影像數據，或影像無效 (無波段)。")
+                    return ee.Image(0), s2_vis_params # 返回空白影像
+            except ee.EEException as ee_inner_e:
+                st.error(f"獲取 {year} 年份 Sentinel-2 影像時內部 Earth Engine 錯誤：{ee_inner_e}")
+                return ee.Image(0), s2_vis_params # 返回空白影像
+        else: # This path should be less likely with .or(ee.Image(0)) but kept for safety.
+            st.warning(f"在 {year} 年份沒有足夠清晰的 Sentinel-2 影像數據 (影像物件為空)。")
+            return ee.Image(0), s2_vis_params # 返回空白影像
     except ee.EEException as e:
-        st.error(f"獲取 {year} 年土地覆蓋數據時發生 Earth Engine 錯誤：{e}")
-        return ee.Image(0) # Return a blank image on GEE error
+        st.error(f"獲取 {year} 年份 Sentinel-2 影像時發生 Earth Engine 錯誤：{e}")
+        return ee.Image(0), s2_vis_params # 返回空白影像
 
+# --- 佈局：使用 st.columns 分成左右兩欄 ---
+col1, col2 = st.columns(2)
 
-# --- Year Selector ---
+# --- 年份選擇器 (控制左右兩邊的地圖) ---
 years = list(range(1990, 2025))
 selected_year = st.sidebar.selectbox("選擇年份", years, index=years.index(2000))
 
-st.subheader(f"土地覆蓋圖資 (GLC_FCS30D) - {selected_year} 年")
+# --- 左欄：Sentinel-2 真色影像 ---
+with col1:
+    st.subheader(f"Sentinel-2 真色影像 - {selected_year} 年")
+    
+    # 獲取 Sentinel-2 影像
+    sentinel_image, s2_vis_params = get_sentinel2_true_color_image(selected_year)
 
-# Get Land Cover Image
-land_cover_image = get_land_cover_image(selected_year)
+    # --- Debugging check ---
+    if not isinstance(sentinel_image, ee.Image):
+        st.error(f"偵測到 Sentinel-2 影像變數類型錯誤！預期 ee.Image，但實際為 {type(sentinel_image)}。")
+        # If it's not an ee.Image, default to a blank image to prevent TypeError
+        sentinel_image = ee.Image(0) 
+        # You might also want to set s2_vis_params to a safe default if sentinel_image is blank
+        s2_vis_params = {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max': 1} # Minimal params for blank image
+    # --- End Debugging check ---
 
-# Get Map ID from GEE (Corrected function for Leaflet tile layer)
-try:
-    # Use getMapId() instead of getTileUrl() for Leaflet integration
-    map_id_dict_lc = land_cover_image.getMapId(VIS_PARAMS)
-    tile_url_lc = map_id_dict_lc['tile_fetcher'].url_format # Access the URL from the map_id_dict
-except Exception as e:
-    st.error(f"無法為土地覆蓋影像獲取瓦片 URL。錯誤：{e}")
-    st.warning("將顯示預設的 OpenStreetMap 地圖。")
-    tile_url_lc = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' # Fallback URL
+    try:
+        map_id_dict_s2 = ee.data.getTileUrl({
+            'image': sentinel_image,
+            'visParams': s2_vis_params
+        })
+        tile_url_s2 = map_id_dict_s2['url']
+    except Exception as e:
+        st.error(f"無法為 Sentinel-2 影像獲取瓦片 URL。錯誤：{e}")
+        st.warning("將顯示預設的 OpenStreetMap 地圖。")
+        # Fallback to a placeholder tile URL if GEE fails
+        tile_url_s2 = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 
-# HTML/JavaScript for Leaflet Map
-html_code_lc = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Land Cover Map</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-     integrity="sha256-p4NxAoCcTZeWLgQz7PHrPvLeKkBGfG/6h7cdFG8FVY="
-     crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-     integrity="sha256-20n6fxy+PGEQzYf/HjV36Ymg7XwU2Yf7g2Q/9g2X2Fw="
-     crossorigin=""></script>
-    <style>
-        #map-lc {{ height: 500px; width: 100%; }}
-        .legend {{
-            padding: 6px 8px;
-            font: 14px Arial, Helvetica, sans-serif;
-            background: white;
-            background: rgba(255,255,255,0.8);
-            box-shadow: 0 0 15px rgba(0,0,0,0.2);
-            border-radius: 5px;
-            line-height: 18px;
-            color: #555;
-        }}
-        .legend i {{
-            width: 18px;
-            height: 18px;
-            float: left;
-            margin-right: 8px;
-            opacity: 0.7;
-        }}
-    </style>
-</head>
-<body>
-    <div id="map-lc"></div>
-    <script>
-        var map_lc = L.map('map-lc').setView([{center_lat}, {center_lon}], 10);
 
-        L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }}).addTo(map_lc);
+    html_code_s2 = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Sentinel-2 Map</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+         integrity="sha256-p4NxAoCcTZeWLgQz7PHrPvLeKkBGfG/6h7cdFG8FVY="
+         crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+         integrity="sha256-20n6fxy+PGEQzYf/HjV36Ymg7XwU2Yf7g2Q/9g2X2Fw="
+         crossorigin=""></script>
+        <style>
+            #map-s2 {{ height: 500px; width: 100%; }}
+        </style>
+    </head>
+    <body>
+        <div id="map-s2"></div>
+        <script>
+            var map_s2 = L.map('map-s2').setView([{center_lat}, {center_lon}], 10);
 
-        L.tileLayer('{tile_url_lc}', {{
-            attribution: 'Google Earth Engine - GLC_FCS30D',
-            opacity: 0.8
-        }}).addTo(map_lc);
+            L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }}).addTo(map_s2);
 
-        var legend = L.control({{position: 'bottomleft'}});
-        legend.onAdd = function (map_lc) {{
-            var div = L.DomUtil.create('div', 'info legend'),
-                labels = ['水體', '永久冰雪', '建築用地', '裸地', '農田', '草地', '灌木叢', '森林', '濕地', '苔原'];
-            var colors = {json.dumps(PALETTE)};
+            L.tileLayer('{tile_url_s2}', {{
+                attribution: 'Google Earth Engine - Sentinel-2 True Color',
+                opacity: 0.8
+            }}).addTo(map_s2);
+        </script>
+    </body>
+    </html>
+    """
+    html(html_code_s2, height=550)
 
-            div.innerHTML += '<b>土地覆蓋圖例</b><br>';
-            for (var i = 0; i < labels.length; i++) {{
-                div.innerHTML +=
-                    '<i style="background:' + colors[i] + '"></i> ' + labels[i] + '<br>';
+
+# --- 右欄：土地覆蓋圖資 ---
+with col2:
+    st.subheader(f"土地覆蓋圖資 (GLC_FCS30D) - {selected_year} 年")
+    
+    # 獲取土地覆蓋圖資
+    land_cover_image = get_land_cover_image(selected_year)
+    
+    # --- Debugging check ---
+    if not isinstance(land_cover_image, ee.Image):
+        st.error(f"偵測到土地覆蓋影像變數類型錯誤！預期 ee.Image，但實際為 {type(land_cover_image)}。")
+        # If it's not an ee.Image, default to a blank image to prevent TypeError
+        land_cover_image = ee.Image(0)
+    # --- End Debugging check ---
+
+    try:
+        map_id_dict_lc = ee.data.getTileUrl({
+            'image': land_cover_image,
+            'visParams': VIS_PARAMS
+        })
+        tile_url_lc = map_id_dict_lc['url']
+    except Exception as e:
+        st.error(f"無法為土地覆蓋影像獲取瓦片 URL。錯誤：{e}")
+        st.warning("將顯示預設的 OpenStreetMap 地圖。")
+        # Fallback to a placeholder tile URL if GEE fails
+        tile_url_lc = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+
+
+    html_code_lc = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Land Cover Map</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+         integrity="sha256-p4NxAoCcTZeWLgQz7PHrPvLeKkBGfG/6h7cdFG8FVY="
+         crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+         integrity="sha256-20n6fxy+PGEQzYf/HjV36Ymg7XwU2Yf7g2Q/9g2X2Fw="
+         crossorigin=""></script>
+        <style>
+            #map-lc {{ height: 500px; width: 100%; }}
+            .legend {{
+                padding: 6px 8px;
+                font: 14px Arial, Helvetica, sans-serif;
+                background: white;
+                background: rgba(255,255,255,0.8);
+                box-shadow: 0 0 15px rgba(0,0,0,0.2);
+                border-radius: 5px;
+                line-height: 18px;
+                color: #555;
             }}
-            return div;
-        }};
-        legend.addTo(map_lc);
-    </script>
-</body>
-</html>
-"""
-html(html_code_lc, height=550)
+            .legend i {{
+                width: 18px;
+                height: 18px;
+                float: left;
+                margin-right: 8px;
+                opacity: 0.7;
+            }}
+        </style>
+    </head>
+    <body>
+        <div id="map-lc"></div>
+        <script>
+            var map_lc = L.map('map-lc').setView([{center_lat}, {center_lon}], 10);
+
+            L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }}).addTo(map_lc);
+
+            L.tileLayer('{tile_url_lc}', {{
+                attribution: 'Google Earth Engine - GLC_FCS30D',
+                opacity: 0.8
+            }}).addTo(map_lc);
+
+            var legend = L.control({{position: 'bottomleft'}});
+            legend.onAdd = function (map_lc) {{
+                var div = L.DomUtil.create('div', 'info legend'),
+                    labels = ['水體', '永久冰雪', '建築用地', '裸地', '農田', '草地', '灌木叢', '森林', '濕地', '苔原'];
+                var colors = {json.dumps(PALETTE)};
+
+                div.innerHTML += '<b>土地覆蓋圖例</b><br>';
+                for (var i = 0; i < labels.length; i++) {{
+                    div.innerHTML +=
+                        '<i style="background:' + colors[i] + '"></i> ' + labels[i] + '<br>';
+                }}
+                return div;
+            }};
+            legend.addTo(map_lc);
+        </script>
+    </body>
+    </html>
+    """
+    html(html_code_lc, height=550)
 
 
 st.markdown("---")
@@ -189,6 +321,8 @@ st.write("此應用使用 Google Earth Engine (GEE) 的 GLC_FCS30D 資料集顯�
 st.write("數據來源：[GLC_FCS30D (1985-2022)](https://gee-community-catalog.org/projects/glc_fcs/)")
 st.markdown("""
     **注意事項：**
-    * GLC_FCS30D 在 2000 年前為每五年一個數據 (1985, 1990, 1995)，非年度數據。
-    * 對於 2023 和 2024 年，數據會顯示 2022 年的數據。
+    * GLC_FCS30D 在 2000 年前是每五年一個數據 (1985, 1990, 1995)，非年度數據。
+    * 對於 2023 和 2024 年，目前 GLC_FCS30D 尚未更新，程式碼會顯示 2022 年的數據。
+    * 土地覆蓋分類顏色僅為示意，詳細定義請參考原始資料集說明。
+    * Sentinel-2 真色影像可能因雲層覆蓋而無影像，或者在某些年份沒有足夠清晰的數據。
 """)
