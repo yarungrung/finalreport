@@ -176,11 +176,6 @@ with col1:
             'visParams': s2_vis_params
         })
         tile_url_s2 = map_id_dict_s2['url']
-    except Exception as e:
-        st.error(f"無法為 Sentinel-2 影像獲取瓦片 URL。錯誤：{e}")
-        st.warning("將顯示預設的 OpenStreetMap 地圖。")
-        # Fallback to a placeholder tile URL if GEE fails
-        tile_url_s2 = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 
 
     html_code_s2 = f"""
