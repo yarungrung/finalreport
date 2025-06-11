@@ -3,6 +3,7 @@ import ee
 from datetime import date
 import json # 用於處理 JSON 數據，特別是地圖邊界
 from streamlit.components.v1 import html # 引入 html 組件
+from google.oauth2 import service_account
 
 # --- 將 st.set_page_config 放在所有 st.XXX() 命令的最前面 ---
 st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化", page_icon="🌎")
