@@ -3,43 +3,54 @@ import ee
 from datetime import date
 import json
 from streamlit.components.v1 import html
-from google.oauth2 import service_account # 確保這個也被 import 了
+from google.oauth2 import service_account
 
-# 2. st.set_page_config() 必須是第一個 Streamlit 命令
+# 1. st.set_page_config() 必須是 Streamlit 腳本中執行的第一個 Streamlit 命令
 st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化", page_icon="🌎")
 
-# 3. 接下來才是其他 Streamlit 命令和你的應用邏輯
-st.title("台灣土地覆蓋變化分析 (1990 - 2024)")
+# 2. 接下來才是其他的 Streamlit 命令和你的應用邏輯
+st.title("台灣土地覆蓋變化分析 (1990 - 2024) 🌍")
+st.markdown("左邊的地圖將展示選擇年份的土地覆蓋類型，而右邊則可以選擇日期區間來觀察 Sentinel-2 的假色影像。") # 修正文案以符合左右兩側功能
 st.markdown("---")
 
-# 從 Streamlit Secrets 讀取 GEE 服務帳戶金鑰 JSON
-service_account_info = st.secrets["GEE_SERVICE_ACCOUNT"]
+# --- GEE 認證與初始化 ---
+try:
+    # 從 Streamlit Secrets 讀取 GEE 服務帳戶金鑰 JSON
+    service_account_info = st.secrets["GEE_SERVICE_ACCOUNT"]
 
-# 使用 google-auth 進行 GEE 授權
-credentials = service_account.Credentials.from_service_account_info(
-    service_account_info,
-    scopes=["https://www.googleapis.com/auth/earthengine"]
-)
+    # 使用 google-auth 進行 GEE 授權
+    credentials = service_account.Credentials.from_service_account_info(
+        service_account_info,
+        scopes=["https://www.googleapis.com/auth/earthengine"]
+    )
 
-# 初始化 GEE
-ee.Initialize(credentials)
+    # 初始化 GEE
+    ee.Initialize(credentials)
+    # st.success("Google Earth Engine 已成功初始化！") # 避免重複顯示成功訊息
+except Exception as e:
+    st.error(f"Google Earth Engine 初始化失敗：{e}")
+    st.warning("請確認您已在 Streamlit Secrets 中正確配置 `GEE_SERVICE_ACCOUNT` 金鑰。")
+    st.stop() # 停止執行，因為沒有 GEE 就無法工作
 
-###############################################
 
-st.set_page_config(layout="wide")
-st.title("台灣土地覆蓋變化分析 (1990 - 2024)🌍")
-st.markdown("左邊的地圖為1984/01/01到2025/01/01的Sentinel-2的假色影像；右邊則為1984/01/01到2025/01/01的Sentinel-2的假色影像")
-st.markdown("---")
+# --- 全局變數定義 ---
+# 定義台灣的範圍 (以南科為中心稍微放大)
+# 南科中心點大概在 23.08, 120.28
+taiwan_aoi = ee.Geometry.Rectangle([119.8, 22.5, 120.8, 23.5]) # 台灣西南海岸大致範圍
 
-# 地理區域
-my_point = ee.Geometry.Point([120.271552, 23.106393])
+# 獲取 AOI 的經緯度，用於初始化地圖中心
+coords = taiwan_aoi.centroid().coordinates().getInfo()
+center_lon, center_lat = coords[0], coords[1]
 
+
+# --- 載入 GLC_FCS30D 資料集 ---
 glc_annual = ee.ImageCollection('projects/sat-io/open-datasets/GLC-FCS30D/annual')
 glc_five_yearly = ee.ImageCollection('projects/sat-io/open-datasets/GLC-FCS30D/five_yearly')
+
 # --- 定義土地覆蓋分類的視覺化參數和圖例 ---
 PALETTE = [
     '#00008B',  # 0: Water (Dark Blue)
-    '#DCDCDC',  # 10: Permanent snow and ice (Light Gray) - unlikely to be shown
+    '#DCDCDC',  # 10: Permanent snow and ice (Light Gray)
     '#FF0000',  # 20: Built-up land (Red)
     '#A0522D',  # 30: Bareland (Sienna)
     '#FFFF00',  # 40: Cropland (Yellow)
@@ -47,192 +58,220 @@ PALETTE = [
     '#8B4513',  # 60: Shrubland (Saddle Brown)
     '#006400',  # 70: Forest (Dark Green)
     '#87CEEB',  # 80: Wetland (Sky Blue)
-    '#FFFFFF',  # 90: Tundra (White) - unlikely to be shown
+    '#FFFFFF',  # 90: Tundra (White)
 ]
-modis_labels = {
-    0: "Water (Dark Blue)",
-    10: "Permanent snow and ice (Light Gray)",
-    20: "Built-up land (Red)",
-    30: "Bareland (Sienna)",
-    40: "Cropland (Yellow)",
-    50: "Grassland (Green Yellow)",
-    60: "Shrubland (Saddle Brown)",
-    70: "Forest (Dark Green)",
-    80: "Wetland (Sky Blue)",
-    90: "Tundra (White)",
-}
+
 VIS_PARAMS = {
     'min': 0,
-    'max': 90, # 根據你的分類值範圍設定
+    'max': 90,
     'palette': PALETTE
 }
+
 # --- 函數：獲取指定年份的土地覆蓋圖層 ---
 def get_land_cover_image(year):
-    """
-    獲取指定年份的 GLC_FCS30D 土地覆蓋圖像。
-    如果年份在 1985, 1990, 1995, 2000 之間，則從 five_yearly 獲取。
-    如果年份在 2000-2022 之間，則從 annual 獲取。
-    如果年份超過 2022，則返回 2022 年的數據。
-    """
     if year >= 2000 and year <= 2022:
-        # Annual data (2000-2022)
         image = glc_annual.filter(ee.Filter.eq('year', year)).first()
     elif year >= 1985 and year < 2000:
-        # Five-yearly data (1985, 1990, 1995)
-        # 需要處理一下，因為 five_yearly 只有 1985, 1990, 1995, 2000 四個精確年份的數據
         if year == 1985:
             image = glc_five_yearly.filter(ee.Filter.eq('year', 1985)).first()
         elif year == 1990:
             image = glc_five_yearly.filter(ee.Filter.eq('year', 1990)).first()
         elif year == 1995:
             image = glc_five_yearly.filter(ee.Filter.eq('year', 1995)).first()
-        elif year > 1995 and year < 2000: # 如果是 1996-1999，則顯示 1995 年的數據
+        elif year > 1995 and year < 2000:
             st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，顯示 1995 年的數據。")
             image = glc_five_yearly.filter(ee.Filter.eq('year', 1995)).first()
-        else: # 如果是 1986-1989，則顯示 1985 年的數據
+        else:
              st.warning(f"注意：GLC_FCS30D 在 {year} 年前沒有年度數據，顯示 1985 年的數據。")
              image = glc_five_yearly.filter(ee.Filter.eq('year', 1985)).first()
-    elif year > 2022: # 如果選擇 2023 或 2024，則顯示 2022 年的數據 (目前 GLC_FCS30D 最新的)
+    elif year > 2022:
         st.warning(f"注意：GLC_FCS30D 目前僅提供至 2022 年數據，將顯示 2022 年的土地覆蓋圖。")
         image = glc_annual.filter(ee.Filter.eq('year', 2022)).first()
-    else: # 其他無效年份
+    else:
         st.error("選擇的年份超出數據集範圍 (1985-2024)")
         return None
 
     if image:
-        # 裁剪影像到台灣 AOI
         clipped_image = image.clip(taiwan_aoi)
         return clipped_image
     return None
 
+# --- 函數：獲取 Sentinel-2 假色影像 (假定是近紅外、紅、綠波段組合) ---
+def get_sentinel2_false_color_image(start_date, end_date):
+    # 選擇 Sentinel-2 影像集，並過濾日期和雲量
+    s2_collection = ee.ImageCollection('COPERNICUS/S2_SR') \
+        .filterDate(start_date, end_date) \
+        .filterBounds(taiwan_aoi) \
+        .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) # 雲量小於20%
 
+    # 選擇集合中位數影像 (通常用於減少雲的影響)
+    image = s2_collection.median()
 
+    # 視覺化參數 (假色：B8(NIR), B4(Red), B3(Green))
+    s2_vis_params = {
+        'bands': ['B8', 'B4', 'B3'],
+        'min': 0,
+        'max': 3000 # 調整最大值以獲得更好的對比度
+    }
+    
+    if image.bandNames().size().getInfo() == 0: # 檢查影像是否為空
+        return None, None
+    
+    # 裁剪影像到台灣 AOI
+    clipped_image = image.clip(taiwan_aoi)
+    return clipped_image, s2_vis_params
 
-st.title("選擇日期區間")
-# 初始化 session_state
-#if 'start_date' not in st.session_state:
-#    st.session_state['start_date'] = date(2024, 1, 1)
-#if 'end_date' not in st.session_state:
-#    st.session_state['end_date'] = date.today()
-st.session_state['start_date'] = date(2024, 1, 1)
-st.session_state['end_date'] = date.today()
-# 日期選擇器
-start_date = st.date_input(label = "選擇起始日期", value = st.session_state['start_date'], min_value = date(2018, 1, 1), max_value = date.today())
-end_date = st.date_input(label = "選擇結束日期", value = st.session_state['end_date'], min_value = start_date, max_value = date.today())
+# --- 佈局：使用 st.columns 分成左右兩欄 ---
+col1, col2 = st.columns(2)
 
-# 儲存使用者選擇
-st.session_state['start_date'] = start_date
-st.session_state['end_date'] = end_date
+with col1:
+    st.subheader("選擇年份顯示土地覆蓋圖")
+    years = list(range(1990, 2025))
+    selected_year = st.selectbox("選擇年份", years, index=years.index(2000), key="land_cover_year_selector")
 
-st.success(f"目前選擇的日期區間為：{start_date} 到 {end_date}")
+    if selected_year:
+        land_cover_image = get_land_cover_image(selected_year)
+        if land_cover_image:
+            map_id_dict = ee.data.getTileUrl({
+                'image': land_cover_image,
+                'visParams': VIS_PARAMS
+            })
+            tile_url = map_id_dict['url']
 
-import streamlit as st
-import ee
-
-st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化", page_icon="🌎")
-
-st.title("台灣土地覆蓋變化分析 (1990 - 2024)")
-st.markdown("---")
-
-
-
-years = list(range(1990, 2025))
-selected_year = st.sidebar.selectbox("選擇年份", years, index=years.index(2000))
-
-if selected_year:
-    st.subheader(f"台灣土地覆蓋類型 - {selected_year} 年")
-
-    land_cover_image = get_land_cover_image(selected_year)
-
-    if land_cover_image:
-        # 獲取 GEE 圖層的瓦片 URL
-        map_id_dict = ee.data.getTileUrl({
-            'image': land_cover_image,
-            'visParams': VIS_PARAMS
-        })
-        tile_url = map_id_dict['url']
-
-        # 創建 HTML 和 JavaScript 來初始化 Leaflet 地圖並添加 GEE 圖層
-        # Leaflet 庫的 CDN 引入
-        html_code = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>GEE Map</title>
-            <meta charset="utf-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-             integrity="sha256-p4NxAoCcTZeWLgQz7PHrPvLeKkBGfG/6h7cdFG8FVY="
-             crossorigin=""/>
-            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-             integrity="sha256-20n6fxy+PGEQzYf/HjV36Ymg7XwU2Yf7g2Q/9g2X2Fw="
-             crossorigin=""></script>
-            <style>
-                #map {{ height: 600px; width: 100%; }}
-                .legend {{
-                    padding: 6px 8px;
-                    font: 14px Arial, Helvetica, sans-serif;
-                    background: white;
-                    background: rgba(255,255,255,0.8);
-                    box-shadow: 0 0 15px rgba(0,0,0,0.2);
-                    border-radius: 5px;
-                    line-height: 18px;
-                    color: #555;
-                }}
-                .legend i {{
-                    width: 18px;
-                    height: 18px;
-                    float: left;
-                    margin-right: 8px;
-                    opacity: 0.7;
-                }}
-            </style>
-        </head>
-        <body>
-            <div id="map"></div>
-            <script>
-                var map = L.map('map').setView([{center_lat}, {center_lon}], 10); // 設置中心點和初始縮放
-
-                // 添加 OpenStreetMap 底圖
-                L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                }}).addTo(map);
-
-                // 添加 GEE 土地覆蓋圖層
-                L.tileLayer('{tile_url}', {{
-                    attribution: 'Google Earth Engine - GLC_FCS30D',
-                    opacity: 0.8
-                }}).addTo(map);
-
-                // 添加圖例 (使用 HTML/CSS 實現)
-                var legend = L.control({{position: 'bottomleft'}});
-                legend.onAdd = function (map) {{
-                    var div = L.DomUtil.create('div', 'info legend'),
-                        labels = ['水體', '永久冰雪', '建築用地', '裸地', '農田', '草地', '灌木叢', '森林', '濕地', '苔原'];
-                    var colors = {json.dumps(PALETTE)}; // 將 Python 列表轉換為 JSON 字符串
-
-                    div.innerHTML += '<b>土地覆蓋圖例</b><br>';
-                    for (var i = 0; i < labels.length; i++) {{
-                        div.innerHTML +=
-                            '<i style="background:' + colors[i] + '"></i> ' + labels[i] + '<br>';
+            html_code_lc = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Land Cover Map</title>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+                 integrity="sha256-p4NxAoCcTZeWLgQz7PHrPvLeKkBGfG/6h7cdFG8FVY="
+                 crossorigin=""/>
+                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+                 integrity="sha256-20n6fxy+PGEQzYf/HjV36Ymg7XwU2Yf7g2Q/9g2X2Fw="
+                 crossorigin=""></script>
+                <style>
+                    #map-lc {{ height: 500px; width: 100%; }}
+                    .legend {{
+                        padding: 6px 8px;
+                        font: 14px Arial, Helvetica, sans-serif;
+                        background: white;
+                        background: rgba(255,255,255,0.8);
+                        box-shadow: 0 0 15px rgba(0,0,0,0.2);
+                        border-radius: 5px;
+                        line-height: 18px;
+                        color: #555;
                     }}
-                    return div;
-                }};
-                legend.addTo(map);
+                    .legend i {{
+                        width: 18px;
+                        height: 18px;
+                        float: left;
+                        margin-right: 8px;
+                        opacity: 0.7;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div id="map-lc"></div>
+                <script>
+                    var map_lc = L.map('map-lc').setView([{center_lat}, {center_lon}], 10);
 
-                // 調整地圖以適應 AOI (可選，但建議)
-                // var bounds = L.latLngBounds([[22.5, 119.8], [23.5, 120.8]]); // 根據 taiwan_aoi 設置邊界
-                // map.fitBounds(bounds);
+                    L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    }}).addTo(map_lc);
 
-            </script>
-        </body>
-        </html>
-        """
+                    L.tileLayer('{tile_url}', {{
+                        attribution: 'Google Earth Engine - GLC_FCS30D',
+                        opacity: 0.8
+                    }}).addTo(map_lc);
 
-        # 在 Streamlit 中渲染 HTML
-        html(html_code, height=650) # 高度要足夠顯示地圖和圖例
-    else:
-        st.warning("無法獲取該年份的土地覆蓋數據。請嘗試其他年份。")
+                    var legend = L.control({{position: 'bottomleft'}});
+                    legend.onAdd = function (map_lc) {{
+                        var div = L.DomUtil.create('div', 'info legend'),
+                            labels = ['水體', '永久冰雪', '建築用地', '裸地', '農田', '草地', '灌木叢', '森林', '濕地', '苔原'];
+                        var colors = {json.dumps(PALETTE)};
+
+                        div.innerHTML += '<b>土地覆蓋圖例</b><br>';
+                        for (var i = 0; i < labels.length; i++) {{
+                            div.innerHTML +=
+                                '<i style="background:' + colors[i] + '"></i> ' + labels[i] + '<br>';
+                        }}
+                        return div;
+                    }};
+                    legend.addTo(map_lc);
+                </script>
+            </body>
+            </html>
+            """
+            html(html_code_lc, height=550) # 高度要足夠顯示地圖和圖例
+        else:
+            st.warning("無法獲取該年份的土地覆蓋數據。請嘗試其他年份。")
+
+with col2:
+    st.subheader("選擇日期區間顯示 Sentinel-2 假色影像")
+    # 初始化 session_state
+    if 'start_date' not in st.session_state:
+        st.session_state['start_date'] = date(2024, 1, 1)
+    if 'end_date' not in st.session_state:
+        st.session_state['end_date'] = date.today()
+
+    start_date = st.date_input(label="選擇起始日期", value=st.session_state['start_date'], min_value=date(2018, 1, 1), max_value=date.today(), key="s2_start_date")
+    end_date = st.date_input(label="選擇結束日期", value=st.session_state['end_date'], min_value=start_date, max_value=date.today(), key="s2_end_date")
+
+    st.session_state['start_date'] = start_date
+    st.session_state['end_date'] = end_date
+
+    st.success(f"目前選擇的日期區間為：{start_date} 到 {end_date}")
+
+    if start_date and end_date:
+        sentinel_image, s2_vis_params = get_sentinel2_false_color_image(str(start_date), str(end_date))
+
+        if sentinel_image:
+            map_id_dict_s2 = ee.data.getTileUrl({
+                'image': sentinel_image,
+                'visParams': s2_vis_params
+            })
+            tile_url_s2 = map_id_dict_s2['url']
+
+            html_code_s2 = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Sentinel-2 Map</title>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+                 integrity="sha256-p4NxAoCcTZeWLgQz7PHrPvLeKkBGfG/6h7cdFG8FVY="
+                 crossorigin=""/>
+                <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+                 integrity="sha256-20n6fxy+PGEQzYf/HjV36Ymg7XwU2Yf7g2Q/9g2X2Fw="
+                 crossorigin=""></script>
+                <style>
+                    #map-s2 {{ height: 500px; width: 100%; }}
+                </style>
+            </head>
+            <body>
+                <div id="map-s2"></div>
+                <script>
+                    var map_s2 = L.map('map-s2').setView([{center_lat}, {center_lon}], 10);
+
+                    L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    }}).addTo(map_s2);
+
+                    L.tileLayer('{tile_url_s2}', {{
+                        attribution: 'Google Earth Engine - Sentinel-2 False Color',
+                        opacity: 0.8
+                    }}).addTo(map_s2);
+                </script>
+            </body>
+            </html>
+            """
+            html(html_code_s2, height=550)
+        else:
+            st.warning("所選日期區間內沒有可用的 Sentinel-2 影像，或者影像雲量過高。請嘗試其他日期。")
+
 
 st.markdown("---")
 st.write("此應用使用 Google Earth Engine (GEE) 的 GLC_FCS30D 資料集顯示台灣的土地覆蓋變化，並透過 Leaflet.js 呈現。")
@@ -242,4 +281,5 @@ st.markdown("""
     * GLC_FCS30D 在 2000 年前是每五年一個數據 (1985, 1990, 1995)，非年度數據。
     * 對於 2023 和 2024 年，目前 GLC_FCS30D 尚未更新，程式碼會顯示 2022 年的數據。
     * 土地覆蓋分類顏色僅為示意，詳細定義請參考原始資料集說明。
+    * Sentinel-2 假色影像可能因雲層覆蓋而無影像，請調整日期區間以獲得清晰影像。
 """)
