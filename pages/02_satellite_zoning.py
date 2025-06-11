@@ -1,5 +1,8 @@
 import streamlit as st
 import ee
+from datetime import date
+import json # 用於處理 JSON 數據，特別是地圖邊界
+from streamlit.components.v1 import html # 引入 html 組件
 from google.oauth2 import service_account
 import geemap.foliumap as geemap
 
@@ -12,15 +15,16 @@ credentials = service_account.Credentials.from_service_account_info(
     scopes=["https://www.googleapis.com/auth/earthengine"]
 )
 
+
 # 初始化 GEE
 ee.Initialize(credentials)
 
 ###############################################
 
 st.set_page_config(layout="wide")
-st.title("南科附近衛星影像與Sentinel-2土地覆蓋之K-means分類🌍")
+st.title("台灣土地覆蓋變化分析 (1990 - 2024)🌍")
 st.markdown("左邊的地圖為1984/01/01到2025/01/01的Sentinel-2的假色影像；右邊則為1984/01/01到2025/01/01的Sentinel-2的假色影像")
-st.markdown("##### ")
+st.markdown("---")
 
 # 地理區域
 my_point = ee.Geometry.Point([120.282006,23.101410])
