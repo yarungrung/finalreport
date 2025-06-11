@@ -21,7 +21,7 @@ center_point = ee.Geometry.Point(center_coords)
 aoi = center_point.buffer(3000)
 
 # ✅ 建立地圖（指定中心與縮放）
-my_Map = geemap.Map(center=center_coords[::-1], zoom=16)
+my_Map = geemap.Map(center=center_coords[::-1], zoom=14)
 
 # === 1994 年 Landsat 5 處理 ===
 collection_1994 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2') \
