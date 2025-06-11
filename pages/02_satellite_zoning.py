@@ -123,8 +123,6 @@ st.success(f"目前選擇的日期區間為：{start_date} 到 {end_date}")
 
 import streamlit as st
 import ee
-import folium
-from streamlit_folium import folium_static # 用於在 Streamlit 中顯示 Folium 地圖
 
 st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化", page_icon="🌎")
 
