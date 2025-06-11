@@ -1,3 +1,5 @@
+
+
 import streamlit as st
 import ee
 import json
@@ -192,4 +194,3 @@ st.markdown("""
     * GLC_FCS30D 在 2000 年前為每五年一個數據 (1985, 1990, 1995)，非年度數據。
     * 對於 2023 和 2024 年，數據會顯示 2022 年的數據。
 """)
-
