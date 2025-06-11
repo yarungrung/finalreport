@@ -68,6 +68,7 @@ VIS_PARAMS = {
 }
 
 # --- 函數：獲取指定年份的土地覆蓋圖層 ---
+@st.cache_data(ttl=3600) # 緩存數據，避免每次運行都重新獲取
 def get_land_cover_image(year):
     image = None
     if year >= 2000 and year <= 2022:
@@ -93,12 +94,10 @@ def get_land_cover_image(year):
         return ee.Image(0) # 返回一個空白影像，避免 TypeError
 
     try:
-        # Check if the image object itself is valid (not None from .first() if collection was empty)
-        # and then check its band names.
-        if image: # First, check if 'image' is not None
-            # Attempt to get info, but wrap in another try-except for robustness
+        if image:
             try:
-                if image.bandNames().size().getInfo() > 0:
+                # Use .length() for bandNames instead of .size()
+                if image.bandNames().length().getInfo() > 0:
                     clipped_image = image.clip(taiwan_aoi)
                     return clipped_image
                 else:
@@ -116,6 +115,7 @@ def get_land_cover_image(year):
 
 
 # --- 函數：獲取指定年份的 Sentinel-2 真色影像 ---
+@st.cache_data(ttl=3600) # 緩存數據，避免每次運行都重新獲取
 def get_sentinel2_true_color_image(year):
     # 選擇該年份的影像，並過濾雲量，選擇雲量最低的單一影像
     start_date_str = f"{year}-01-01"
@@ -138,13 +138,10 @@ def get_sentinel2_true_color_image(year):
     }
     
     try:
-        # Check if the image object itself is valid (not just ee.Image(0) implicitly from .or())
-        # and then check its band names.
-        if image: # First, check if 'image' is not None (though .or() handles this mostly)
-            # Attempt to get info, but wrap in another try-except for robustness
+        if image:
             try:
-                # Use bandNames().length() instead of size() for robustness. size() is for geometry.
-                if image.bandNames().length().getInfo() > 0: # <-- Changed size() to length()
+                # Use bandNames().length() instead of size() for robustness.
+                if image.bandNames().length().getInfo() > 0:
                     clipped_image = image.clip(taiwan_aoi)
                     return clipped_image, s2_vis_params
                 else:
@@ -176,7 +173,7 @@ with col1:
 
     # --- Debugging check ---
     if not isinstance(sentinel_image, ee.Image):
-        st.error(f"偵測到 Sentinel-2 影像變數類型錯誤！預期 ee.Image，但實際為 {type(sentinel_image)}")
+        st.error(f"偵測到 Sentinel-2 影像變數類型錯誤！預期 ee.Image，但實際為 {type(sentinel_image)}。")
         # If it's not an ee.Image, default to a blank image to prevent TypeError
         sentinel_image = ee.Image(0) 
         # You might also want to set s2_vis_params to a safe default if sentinel_image is blank
@@ -242,7 +239,7 @@ with col2:
     
     # --- Debugging check ---
     if not isinstance(land_cover_image, ee.Image):
-        st.error(f"偵測到土地覆蓋影像變數類型錯誤！預期 ee.Image，但實際為 {type(land_cover_image)}")
+        st.error(f"偵測到土地覆蓋影像變數類型錯誤！預期 ee.Image，但實際為 {type(land_cover_image)}。")
         # If it's not an ee.Image, default to a blank image to prevent TypeError
         land_cover_image = ee.Image(0)
     # --- End Debugging check ---
