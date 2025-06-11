@@ -37,6 +37,7 @@ my_image = (
 
 vis_params = {'min':100, 'max': 3500, 'bands': ['B11',  'B8',  'B3']}
 
+from datetime import date
 st.title("選擇日期區間")
 # 初始化 session_state
 #if 'start_date' not in st.session_state:
