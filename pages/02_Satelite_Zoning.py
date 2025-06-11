@@ -5,20 +5,15 @@ import json
 from streamlit.components.v1 import html
 from google.oauth2 import service_account
 
-# 1. st.set_page_config() 必須是 Streamlit 腳本中執行的第一個 Streamlit 命令
 st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化", page_icon="🌎")
 
-# 2. 接下來才是其他的 Streamlit 命令和你的應用邏輯
 st.title("台灣土地覆蓋變化分析 (1990 - 2024) 🌍")
 st.markdown("左右兩邊的地圖將同步顯示相同年份的衛星真色影像與土地覆蓋圖資。")
 st.markdown("---")
 
 # --- GEE 認證與初始化 ---
 try:
-    # 從 Streamlit Secrets 讀取 GEE 服務帳戶金鑰 JSON
-    # 確保你的 .streamlit/secrets.toml 中有 [GEE_SERVICE_ACCOUNT] 段落
-    service_account_info = st.secrets["GEE_SERVICE_ACCOUNT"]
-
+    service_account_info = st.secrets["GEE_SERVICE_ACCOUNT"] # 從 Streamlit Secrets 讀取 GEE 服務帳戶金鑰 JSON  
     # 使用 google-auth 進行 GEE 授權
     credentials = service_account.Credentials.from_service_account_info(
         service_account_info,
@@ -27,13 +22,7 @@ try:
 
     # 初始化 GEE
     ee.Initialize(credentials)
-except Exception as e:
-    st.error(f"Google Earth Engine 初始化失敗：{e}")
-    st.warning(f"請確認您已在 Streamlit Secrets 中正確配置 `GEE_SERVICE_ACCOUNT` 金鑰。錯誤詳情：`{e}`")
-    st.stop() # 停止執行，因為沒有 GEE 就無法工作
 
-
-# --- 全局變數定義 ---
 # 定義台灣的範圍 (以南科為中心稍微放大)
 taiwan_aoi = ee.Geometry.Rectangle([120.174618, 23.008626, 120.297048, 23.069197])
 
