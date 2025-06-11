@@ -16,7 +16,7 @@ st.set_page_config(layout="wide")
 st.title("南科 1994 vs 2024 衛星影像變遷比較🗺️")
 
 # ✅ AOI：以南科中心點建立緩衝區
-center_coords = [120.3138, 23.0865]
+center_coords = [120.271552, 23.106393]
 center_point = ee.Geometry.Point(center_coords)
 aoi = center_point.buffer(3000)
 
