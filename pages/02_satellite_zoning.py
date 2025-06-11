@@ -1,22 +1,3 @@
-好的，我完全理解你的意思了！你希望的兩欄是：
-
-左欄： 顯示 當年 的 Sentinel-2 真色影像圖。
-右欄： 顯示 當年 的 土地覆蓋圖資 (GLC_FCS30D)。
-這表示左右兩邊的地圖都會隨著使用者在左側選擇的同一年份而更新。這樣一來，使用者可以直觀地對比同一時間點的真實地貌和土地分類圖資。
-
-我會修改程式碼來實現這個邏輯，讓地圖選擇的年份保持一致，並將 Sentinel-2 的影像從假色改為真色。
-
-程式碼修改與解釋
-我已經幫你重新調整了 pages/02_satellite_zoning.py 的程式碼。主要有以下改動：
-
-單一年份選擇器： 移除右側的日期區間選擇器，因為現在左右兩邊的地圖都由左側的年份選擇器控制。
-Sentinel-2 真色影像： get_sentinel2_false_color_image 函數已被移除，並新增 get_sentinel2_true_color_image 函數，用於獲取 Sentinel-2 的真色影像（B4: 紅, B3: 綠, B2: 藍）。
-雲量處理： 在獲取 Sentinel-2 影像時，會選擇指定年份內雲量最低的影像。
-地圖同步顯示： 左右兩欄的地圖現在都將根據使用者在左欄選擇的同一年份來顯示對應的影像。
-請將以下程式碼，完全替換你 pages/02_satellite_zoning.py 檔案中的內容：
-
-Python
-
 import streamlit as st
 import ee
 from datetime import date
