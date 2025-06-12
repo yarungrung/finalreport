@@ -38,36 +38,10 @@ my_point = ee.Geometry.Point([120.271555, 23.106061]) # 原始點，作為篩選
 # --- 左邊圖層：1994年 Landsat 影像 ---
 # 獲取 1994 年的 Landsat 影像
 st.image("1994image.png")
+   
 
-    # 實際分類需要大量且分佈合理的訓練數據     
-labels = {
-    0: "Water (Dark Blue)",
-    10: "Permanent snow and ice (Light Gray)",
-    20: "Built-up land (Red)",
-    30: "Bareland (Sienna)",
-    40: "Cropland (Yellow)",
-    50: "Grassland (Green Yellow)",
-    60: "Shrubland (Saddle Brown)",
-    70: "Forest (Dark Green)",
-    80: "Wetland (Sky Blue)",
-    90: "Tundra (White)",
-}
-VIS_PARAMS = {
-    'min': 0,
-    'max': 90,
-    'palette':  [
-    '#00008B',  # 0: Water (Dark Blue)
-    '#DCDCDC',  # 10: Permanent snow and ice (Light Gray) - unlikely to be shown
-    '#FF0000',  # 20: Built-up land (Red)
-    '#A0522D',  # 30: Bareland (Sienna)
-    '#FFFF00',  # 40: Cropland (Yellow)
-    '#ADFF2F',  # 50: Grassland (Green Yellow)
-    '#8B4513',  # 60: Shrubland (Saddle Brown)
-    '#006400',  # 70: Forest (Dark Green)
-    '#87CEEB',  # 80: Wetland (Sky Blue)
-    '#FFFFFF',  # 90: Tundra (White) - unlikely to be shown
-     ]
-}
+vis_params = {'min': 100, 'max': 3500, 'bands': ['B7','B4','B3']}
+
     # 4. 建立地圖並添加圖層
     my_Map = geemap.Map()
 
