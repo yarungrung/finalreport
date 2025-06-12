@@ -109,43 +109,10 @@ def get_sentinel2_true_color_image(year):
         'min': 0,
         'max': 3000 # 調整最大值以獲得更好的對比度
     }
-    
-    try:
-        if image:
-            try:
-                # Use bandNames().length() instead of size() for robustness.
-                if image.bandNames().length().getInfo() > 0:
-                    clipped_image = image.clip(taiwan_aoi)
-                    return clipped_image, s2_vis_params
-                else:
-                    st.warning(f"在 {year} 年份沒有足夠清晰的 Sentinel-2 影像數據，或影像無效 (無波段)。")
-                    return ee.Image(0), s2_vis_params # 返回空白影像
-            except ee.EEException as ee_inner_e:
-                st.error(f"獲取 {year} 年份 Sentinel-2 影像時內部 Earth Engine 錯誤：{ee_inner_e}")
-                return ee.Image(0), s2_vis_params # 返回空白影像
-        else: # This path should be less likely with .or(ee.Image(0)) but kept for safety.
-            st.warning(f"在 {year} 年份沒有足夠清晰的 Sentinel-2 影像數據 (影像物件為空)。")
-            return ee.Image(0), s2_vis_params # 返回空白影像
-    except ee.EEException as e:
-        st.error(f"獲取 {year} 年份 Sentinel-2 影像時發生 Earth Engine 錯誤：{e}")
-        return ee.Image(0), s2_vis_params # 返回空白影像
-
-# --- 佈局：使用 st.columns 分成左右兩欄 ---
-col1, col2 = st.columns(2)
-
 # --- 年份選擇器 (控制左右兩邊的地圖) ---
 years = list(range(1990, 2025))
 selected_year = st.sidebar.selectbox("選擇年份", years, index=years.index(2000))
 
-# --- 左欄：Sentinel-2 真色影像 ---
-with col1:
-    st.subheader(f"Sentinel-2 真色影像 - {selected_year} 年")
-    # 獲取 Sentinel-2 影像
-    sentinel_image, s2_vis_params = get_sentinel2_true_color_image(selected_year)
-
-  
-# --- 右欄：土地覆蓋圖資 ---
-with col2:
 roi = ee.Geometry.Rectangle([120.174618, 23.008626, 120.297048, 23.069197])
 my_point = ee.Geometry.Point([120.271555,23.106061]);
 # 擷取 Sentinel-2 影像
@@ -180,6 +147,17 @@ classVis = {
         'b4b4b4', 'f0f0f0', '0064c8', '0096a0', '00cf75', 'fae6a0'
     ]
 }
+
+# 建立地圖並添加圖層
+# --- 左欄：Sentinel-2 真色影像 ---
+# --- 右欄：土地覆蓋圖資 --
+my_Map = geemap.Map()
+left_layer = geemap.ee_tile_layer(sentinel_image, s2_vis_params, 'Sentinel-2 真色影像')
+right_layer = geemap.ee_tile_layer(my_lc, classVis, '土地覆蓋圖資')
+my_Map.split_map(left_layer, right_layer)
+my_Map.add_legend(title='Land Cover Type', builtin_legend='ESA_WorldCover')
+my_Map.centerObject(roi, 12)
+
 
 st.markdown("---")
 st.write("此應用使用 Google Earth Engine (GEE) 的 GLC_FCS30D 資料集顯示台灣的土地覆蓋變化，並透過 Leaflet.js 呈現。")
