@@ -62,7 +62,7 @@ def get_land_cover_image(year):
     if 2000 <= year <= 2022:
         # Use .or(ee.Image(0)) here to ensure 'image' is always an ee.Image object,
         # even if glc_annual.filter().first() returns None.
-        image = glc_annual.filter(ee.Filter.eq('year', year)).first().or(ee.Image(0))
+        image = glc_annual.filter(ee.Filter.eq('year', year)).first().or(ee.Image(0)) # <--- 請仔細檢查這一行是否完整！
     # Fallback to five-yearly data for earlier years (1985, 1990, 1995)
     elif year < 2000:
         if year >= 1995:
@@ -78,7 +78,7 @@ def get_land_cover_image(year):
     elif year > 2022:
         image = glc_annual.filter(ee.Filter.eq('year', 2022)).first().or(ee.Image(0))
         st.warning(f"注意：GLC_FCS30D 目前僅提供至 2022 年數據，顯示 2022 年的土地覆蓋圖。")
-    
+
     # At this point, 'image' should always be an ee.Image object (even if ee.Image(0))
 
     try:
@@ -93,7 +93,6 @@ def get_land_cover_image(year):
     except ee.EEException as e:
         st.error(f"獲取 {year} 年土地覆蓋數據時發生 Earth Engine 錯誤：{e}")
         return ee.Image(0) # Return a blank image on GEE error
-
 
 # --- Year Selector ---
 years = list(range(1990, 2025))
@@ -192,3 +191,6 @@ st.markdown("""
     * GLC_FCS30D 在 2000 年前為每五年一個數據 (1985, 1990, 1995)，非年度數據。
     * 對於 2023 和 2024 年，數據會顯示 2022 年的數據。
 """)
+git add .
+git commit -m "Attempting extreme copy-paste fix for line 65 truncation"
+git push origin main
