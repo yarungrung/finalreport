@@ -37,72 +37,7 @@ my_point = ee.Geometry.Point([120.271555, 23.106061]) # 原始點，作為篩選
 
 # --- 左邊圖層：1994年 Landsat 影像 ---
 # 獲取 1994 年的 Landsat 影像
-# Landsat 5 TM (Thematic Mapper) 是 1994 年主要的 Landsat 衛星
-landsat_1994 = (
-    ee.ImageCollection("LANDSAT/LT05/C01/T1_SR") # Landsat 5 Surface Reflectance
-    .filterBounds(my_point)
-    .filterDate("1994-01-01", "1995-01-01") # 篩選 1994 年的影像
-    .filter(ee.Filter.lt('CLOUD_COVER', 10)) # 雲量小於 10%
-    .sort("CLOUD_COVER")
-    .first() # 選擇雲量最低的第一張影像
-    .clip(roi)
-)
-
-# Landsat 5 的波段可視化參數 (自然色：B3, B2, B1；假彩色：B5, B4, B3)
-# 這裡使用接近真彩色的假彩色紅外 (NIR, Red, Green)
-landsat_vis_params = {'min': 0, 'max': 3000, 'bands': ['B3', 'B2', 'B1']} # 自然色 B3(紅), B2(綠), B1(藍)
-
-if landsat_1994:
-    # --- 右邊圖層：Landsat 監督式分類 ---
-    st.subheader("右側：Landsat 影像的監督式分類")
-    st.write("""
-    監督式分類需要訓練數據。以下是一個 **簡化且基於少量手動定義訓練點** 的分類範例。
-    在實際應用中，需要收集代表不同土地覆蓋類型的精確訓練點，以獲得準確的分類結果。
-    """)
-     # 使用 Landsat 的光譜波段作為分類特徵 (B1, B2, B3, B4, B5, B7)
-    bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B7']
-
-    # 選擇影像中用於分類的波段
-    training_image = landsat_1994.select(bands)
-     # 手動定義一些訓練點
-    training_data = ee.FeatureCollection([
-        ee.Feature(ee.Geometry.Point([120.239463,23.128476]), {'class': 0}),   # Water
-        ee.Feature(ee.Geometry.Point([120.220865,23.031108]), {'class': 0}),   # Water
-        ee.Feature(ee.Geometry.Point([120.25, 23.08]), {'class': 10}),  # Permanent snow and ice
-        ee.Feature(ee.Geometry.Point([120.25, 23.08]), {'class': 10}),  # Permanent snow and ice
-        ee.Feature(ee.Geometry.Point([120.231850,23.027254]), {'class': 20}),  # Built-up land
-        ee.Feature(ee.Geometry.Point([120.219439,23.042502]), {'class': 20}),  # Built-up land
-        ee.Feature(ee.Geometry.Point([120.32, 23.15]), {'class': 30}),  # Bareland
-        ee.Feature(ee.Geometry.Point([120.32, 23.15]), {'class': 30}),  # Bareland
-        ee.Feature(ee.Geometry.Point([120.18, 23.01]), {'class': 40}),  # Cropland
-        ee.Feature(ee.Geometry.Point([120.18, 23.01]), {'class': 40}),  # Cropland
-        ee.Feature(ee.Geometry.Point([120.27, 23.06]), {'class': 50}),  # Grassland
-        ee.Feature(ee.Geometry.Point([120.27, 23.06]), {'class': 50}),  # Grassland
-        ee.Feature(ee.Geometry.Point([120.25, 23.08]), {'class': 60}),  # Shrubland
-         ee.Feature(ee.Geometry.Point([120.25, 23.08]), {'class': 60}),  # Shrubland
-        ee.Feature(ee.Geometry.Point([120.27, 23.05]), {'class': 70}),  # Forest
-        ee.Feature(ee.Geometry.Point([120.27, 23.05]), {'class': 70}),  # Forest
-        ee.Feature(ee.Geometry.Point([120.32, 23.15]), {'class': 80}),  # Wetland
-        ee.Feature(ee.Geometry.Point([120.32, 23.15]), {'class': 80}),  # Wetland
-        ee.Feature(ee.Geometry.Point([120.18, 23.01]), {'class': 90}),  # Tundra
-        ee.Feature(ee.Geometry.Point([120.18, 23.01]), {'class': 90})   # Tundra
-    ])
-
-    # 從影像中採樣訓練數據
-    sampled_points = training_image.sampleRegions(
-        collection=training_data,
-        properties=['class'],
-        scale=30 # Landsat 影像解析度
-    )
-
-    # 訓練分類器 (使用分類器如 Random Forest)
-    classifier = ee.Classifier.smileRandomForest(numberOfTrees=10).train(
-        features=sampled_points,
-        classProperty='class',
-        inputProperties=bands
-    )
-    # 對影像進行分類
-    classified_image = training_image.classify(classifier)
+st.image("1994image.png")
 
     # 實際分類需要大量且分佈合理的訓練數據     
 labels = {
@@ -136,13 +71,6 @@ VIS_PARAMS = {
     # 4. 建立地圖並添加圖層
     my_Map = geemap.Map()
 
-    # 左側圖層：1994年 Landsat 影像
-    left_layer = geemap.ee_tile_layer(landsat_1994, landsat_vis_params, '1994年 Landsat 影像')
-    # 右側圖層：Landsat 監督式分類結果
-    right_layer = geemap.ee_tile_layer(classified_image, classification_vis, 'Landsat 監督式分類')
-
-    my_Map.split_map(left_layer, right_layer)
-
     # 為監督式分類添加一個簡單的圖例 (手動建立，因為不是內建圖例)
     st.write("### 分類圖例 (右側地圖)")
     st.markdown("""
@@ -166,6 +94,23 @@ VIS_PARAMS = {
     my_Map.centerObject(roi, 12)
     # 顯示地圖
     my_Map.to_streamlit(height=600)
+    # 左側圖層：1994年 Landsat 影像
+    left_layer = geemap.ee_tile_layer(1994image, VIS_PARAMS, '1994年 Landsat 影像')
+    # 右側圖層：Landsat 監督式分類結果
+    right_layer = geemap.ee_tile_layer(classified_image, classification_vis, 'Landsat 監督式分類')
+
+    my_Map.split_map(left_layer, right_layer)
+
+st.markdown(
+    """
+    <p>
+    由於google earth engine無1994年知可用土地覆蓋圖資工直接匯入，且為顧及精準性，故在權衡利弊之下
+    在此選擇使用<a href="https://livingatlas.arcgis.com/landsatexplorer/#mapCenter=120.29101%2C23.13162%2C13.000&mode=analysis&mainScene=1994-09-26%7CUrban+for+Visualization%7C949842&tool=trend&trend=moisture%7C9%7C120.25927%2C23.11074%7C1994%7Cyear-to-year">Esri Landsat Explorer</a>之截圖，
+    而非自行從0開始手動輸入訓練大量資料，使監督式分類更具公信力。 
+    </p>
+    """,
+    unsafe_allow_html=True
+)
 
 
 st.title("2021年台灣土地覆蓋變化分析🌍")
