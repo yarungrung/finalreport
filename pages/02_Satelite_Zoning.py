@@ -161,8 +161,7 @@ with col1:
 
 # --- 右欄：土地覆蓋圖資 ---
 with col2:
-    st.subheader(f"土地覆蓋圖資 (GLC_FCS30D) - {selected_year} 年")
-    
+   
     # 獲取土地覆蓋圖資
     land_cover_image = get_land_cover_image(selected_year)
     
