@@ -116,7 +116,7 @@ selected_year = st.sidebar.selectbox("選擇年份", years, index=years.index(20
 roi = ee.Geometry.Rectangle([120.174618, 23.008626, 120.297048, 23.069197])
 my_point = ee.Geometry.Point([120.271555,23.106061]);
 # 擷取 Sentinel-2 影像
-image = (
+sentinel_image = (
     ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
     .filterBounds(my_point)
     .filterDate("2021-01-01", "2022-01-01")
@@ -128,7 +128,7 @@ image = (
 )
 
 # 可視化參數
-vis_params = {'min': 100, 'max': 3500, 'bands': ['B11', 'B8', 'B3']}
+s2_vis_params = {'min': 100, 'max': 3500, 'bands': ['B11', 'B8', 'B3']}
 
 # 讀取 ESA WorldCover 2021 土地覆蓋圖層
 my_lc = ee.Image('ESA/WorldCover/v200/2021').clip(roi)
