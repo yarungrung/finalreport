@@ -152,6 +152,11 @@ with col1:
         s2_vis_params = {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max': 1} # Minimal params for blank image
     # --- End Debugging check ---
 
+        map_id_dict_s2 = ee.data.getTileUrl({
+            'image': sentinel_image,
+            'visParams': s2_vis_params
+        })
+        tile_url_s2 = map_id_dict_s2['url']
 # --- 右欄：土地覆蓋圖資 ---
 with col2:
     st.subheader(f"土地覆蓋圖資 (GLC_FCS30D) - {selected_year} 年")
@@ -165,7 +170,6 @@ with col2:
         land_cover_image = ee.Image(0)
     # --- End Debugging check ---
 
-    try:
         map_id_dict_lc = ee.data.getTileUrl({
             'image': land_cover_image,
             'visParams': VIS_PARAMS
