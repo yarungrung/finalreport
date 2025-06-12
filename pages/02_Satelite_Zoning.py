@@ -140,7 +140,6 @@ selected_year = st.sidebar.selectbox("選擇年份", years, index=years.index(20
 # --- 左欄：Sentinel-2 真色影像 ---
 with col1:
     st.subheader(f"Sentinel-2 真色影像 - {selected_year} 年")
-    
     # 獲取 Sentinel-2 影像
     sentinel_image, s2_vis_params = get_sentinel2_true_color_image(selected_year)
 
@@ -176,10 +175,10 @@ with col2:
         })
         tile_url_lc = map_id_dict_lc['url']
 
-        html_code_s2 = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
+    html_code_s2 = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
         <title>Land Cover Map</title>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
