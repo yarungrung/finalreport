@@ -146,8 +146,8 @@ with col1:
   
 # --- 右欄：土地覆蓋圖資 ---
 with col2:
-roi = ee.Geometry.Rectangle([120.174618, 23.008626, 120.297048, 23.069197)
-my_point = ee.Geometry.Point([ 120.271555,23.106061]);
+roi = ee.Geometry.Rectangle([120.174618, 23.008626, 120.297048, 23.069197])
+my_point = ee.Geometry.Point([120.271555,23.106061]);
 # 擷取 Sentinel-2 影像
 image = (
     ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
