@@ -159,7 +159,6 @@ with col1:
         })
         tile_url_s2 = map_id_dict_s2['url']
 
-
 # --- 右欄：土地覆蓋圖資 ---
 with col2:
     st.subheader(f"土地覆蓋圖資 (GLC_FCS30D) - {selected_year} 年")
