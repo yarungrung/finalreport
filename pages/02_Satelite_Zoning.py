@@ -109,6 +109,7 @@ def get_sentinel2_true_color_image(year):
         'min': 0,
         'max': 3000 # 調整最大值以獲得更好的對比度
     }
+    
 # --- 年份選擇器 (控制左右兩邊的地圖) ---
 years = list(range(1990, 2025))
 selected_year = st.sidebar.selectbox("選擇年份", years, index=years.index(2000))
@@ -157,6 +158,9 @@ right_layer = geemap.ee_tile_layer(my_lc, classVis, '土地覆蓋圖資')
 my_Map.split_map(left_layer, right_layer)
 my_Map.add_legend(title='Land Cover Type', builtin_legend='ESA_WorldCover')
 my_Map.centerObject(roi, 12)
+
+# 顯示地圖
+my_Map.to_streamlit(height=600)
 
 
 st.markdown("---")
