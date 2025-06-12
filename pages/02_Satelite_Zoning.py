@@ -176,11 +176,10 @@ with col2:
         })
         tile_url_lc = map_id_dict_lc['url']
 
-
-    html_code_lc = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
+        html_code_s2 = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
         <title>Land Cover Map</title>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
