@@ -143,19 +143,7 @@ with col1:
     # 獲取 Sentinel-2 影像
     sentinel_image, s2_vis_params = get_sentinel2_true_color_image(selected_year)
 
-    # --- Debugging check ---
-    if not isinstance(sentinel_image, ee.Image):
-        st.error(f"偵測到 Sentinel-2 影像變數類型錯誤！預期 ee.Image，但實際為 {type(sentinel_image)}。")
-        # If it's not an ee.Image, default to a blank image to prevent TypeError
-        sentinel_image = ee.Image(0) 
-        s2_vis_params = {'bands': ['B4', 'B3', 'B2'], 'min': 0, 'max': 1} # Minimal params for blank image
-    # --- End Debugging check ---
-
-        map_id_dict_s2 = ee.data.getTileUrl({
-            'image': sentinel_image,
-            'visParams': s2_vis_params
-        })
-        tile_url_s2 = map_id_dict_s2['url']
+  
 # --- 右欄：土地覆蓋圖資 ---
 with col2:
 roi = ee.Geometry.Rectangle([120.174618, 23.008626, 120.297048, 23.069197)
