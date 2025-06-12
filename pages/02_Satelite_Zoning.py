@@ -4,6 +4,7 @@ from datetime import date
 import json
 from streamlit.components.v1 import html
 from google.oauth2 import service_account
+import geemap.foliumap as geemap
 
 st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化", page_icon="🌎")
 
@@ -11,14 +12,13 @@ st.title("台灣土地覆蓋變化分析 (1990 - 2024) 🌍")
 st.markdown("左右兩邊的地圖將同步顯示相同年份的衛星真色影像與土地覆蓋圖資。")
 st.markdown("---")
 
-# --- GEE 認證與初始化 ---
-try:
-    ee.Initialize()
-    st.success("Google Earth Engine 已成功初始化！")
-except Exception as e:
-    st.error(f"Google Earth Engine 初始化失敗：{e}")
-    st.warning("請確認您已執行 `earthengine authenticate` 並授權 GEE 帳戶。")
-    st.stop() # 停止執行，因為沒有 GEE 就無法工作
+# ✅ 授權 Earth Engine
+service_account_info = st.secrets["GEE_SERVICE_ACCOUNT"]
+credentials = service_account.Credentials.from_service_account_info(
+    service_account_info,
+    scopes=["https://www.googleapis.com/auth/earthengine"]
+)
+ee.Initialize(credentials)
     
 # 定義台灣的範圍 (以南科為中心稍微放大)
 taiwan_aoi = ee.Geometry.Rectangle([120.174618, 23.008626, 120.297048, 23.069197])
