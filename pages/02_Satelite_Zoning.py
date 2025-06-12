@@ -113,10 +113,10 @@ def get_sentinel2_true_color_image(year):
 years = list(range(1990, 2025))
 selected_year = st.sidebar.selectbox("選擇年份", years, index=years.index(2000))
 
-roi = ee.Geometry.Rectangle([120.221282,23.072195,120.328262,23.147854])
+roi = ee.Geometry.Rectangle([120.174618, 23.008626, 120.297048, 23.069197])
 my_point = ee.Geometry.Point([120.271555,23.106061]);
 # 擷取 Sentinel-2 影像
-sentinel_image = (
+image = (
     ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
     .filterBounds(my_point)
     .filterDate("2021-01-01", "2022-01-01")
@@ -128,7 +128,7 @@ sentinel_image = (
 )
 
 # 可視化參數
-s2_vis_params = {'min': 100, 'max': 3500, 'bands': ['B11', 'B8', 'B3']}
+vis_params = {'min': 100, 'max': 3500, 'bands': ['B11', 'B8', 'B3']}
 
 # 讀取 ESA WorldCover 2021 土地覆蓋圖層
 my_lc = ee.Image('ESA/WorldCover/v200/2021').clip(roi)
@@ -136,10 +136,10 @@ my_lc = ee.Image('ESA/WorldCover/v200/2021').clip(roi)
 # Remap 土地覆蓋類別
 classValues = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100]
 remapValues = ee.List.sequence(0, 10)
-my_lc = my_lc.remap(classValues, remapValues, bandName='Map').rename('lc').toByte()
+My_lc = my_lc.remap(classValues, remapValues, bandName='Map').rename('lc').toByte()
 
 # 土地覆蓋視覺化參數
-classVis = {
+ClassVis = {
     'min': 0,
     'max': 10,
     'palette': [
@@ -152,8 +152,8 @@ classVis = {
 # --- 左欄：Sentinel-2 真色影像 ---
 # --- 右欄：土地覆蓋圖資 --
 my_Map = geemap.Map()
-left_layer = geemap.ee_tile_layer(sentinel_image, s2_vis_params, 'Sentinel-2 真色影像')
-right_layer = geemap.ee_tile_layer(my_lc, classVis, '土地覆蓋圖資')
+left_layer = geemap.ee_tile_layer(image, vis_params, 'Sentinel-2 真色影像')
+right_layer = geemap.ee_tile_layer(My_lc, ClassVis, '土地覆蓋圖資')
 my_Map.split_map(left_layer, right_layer)
 my_Map.add_legend(title='Land Cover Type', builtin_legend='ESA_WorldCover')
 my_Map.centerObject(roi, 12)
