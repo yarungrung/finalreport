@@ -158,91 +158,40 @@ with col1:
         tile_url_s2 = map_id_dict_s2['url']
 # --- 右欄：土地覆蓋圖資 ---
 with col2:
-    st.subheader(f"土地覆蓋圖資 (GLC_FCS30D) - {selected_year} 年")
-    # 獲取土地覆蓋圖資
-    land_cover_image = get_land_cover_image(selected_year)
-    
-    # --- Debugging check ---
-    if not isinstance(land_cover_image, ee.Image):
-        st.error(f"偵測到土地覆蓋影像變數類型錯誤！預期 ee.Image，但實際為 {type(land_cover_image)}。")
-        # If it's not an ee.Image, default to a blank image to prevent TypeError
-        land_cover_image = ee.Image(0)
-    # --- End Debugging check ---
+roi = ee.Geometry.Rectangle([120.174618, 23.008626, 120.297048, 23.069197)
+my_point = ee.Geometry.Point([ 120.271555,23.106061]);
+# 擷取 Sentinel-2 影像
+image = (
+    ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
+    .filterBounds(my_point)
+    .filterDate("2021-01-01", "2022-01-01")
+    .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+    .sort("CLOUDY_PIXEL_PERCENTAGE")
+    .first()
+    .clip(roi)
+    .select('B.*')
+)
 
-        map_id_dict_lc = ee.data.getTileUrl({
-            'image': land_cover_image,
-            'visParams': VIS_PARAMS
-        })
-        tile_url_lc = map_id_dict_lc['url']
+# 可視化參數
+vis_params = {'min': 100, 'max': 3500, 'bands': ['B11', 'B8', 'B3']}
 
-    html_code_s2 = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Land Cover Map</title>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-         integrity="sha256-p4NxAoCcTZeWLgQz7PHrPvLeKkBGfG/6h7cdFG8FVY="
-         crossorigin=""/>
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-         integrity="sha256-20n6fxy+PGEQzYf/HjV36Ymg7XwU2Yf7g2Q/9g2X2Fw="
-         crossorigin=""></script>
-        <style>
-            #map-lc {{ height: 500px; width: 100%; }}
-            .legend {{
-                padding: 6px 8px;
-                font: 14px Arial, Helvetica, sans-serif;
-                background: white;
-                background: rgba(255,255,255,0.8);
-                box-shadow: 0 0 15px rgba(0,0,0,0.2);
-                border-radius: 5px;
-                line-height: 18px;
-                color: #555;
-            }}
-            .legend i {{
-                width: 18px;
-                height: 18px;
-                float: left;
-                margin-right: 8px;
-                opacity: 0.7;
-            }}
-        </style>
-    </head>
-    <body>
-        <div id="map-lc"></div>
-        <script>
-            var map_lc = L.map('map-lc').setView([{center_lat}, {center_lon}], 10);
+# 讀取 ESA WorldCover 2021 土地覆蓋圖層
+my_lc = ee.Image('ESA/WorldCover/v200/2021').clip(roi)
 
-            L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }}).addTo(map_lc);
+# Remap 土地覆蓋類別
+classValues = [10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 100]
+remapValues = ee.List.sequence(0, 10)
+my_lc = my_lc.remap(classValues, remapValues, bandName='Map').rename('lc').toByte()
 
-            L.tileLayer('{tile_url_lc}', {{
-                attribution: 'Google Earth Engine - GLC_FCS30D',
-                opacity: 0.8
-            }}).addTo(map_lc);
-
-            var legend = L.control({{position: 'bottomleft'}});
-            legend.onAdd = function (map_lc) {{
-                var div = L.DomUtil.create('div', 'info legend'),
-                    labels = ['水體', '永久冰雪', '建築用地', '裸地', '農田', '草地', '灌木叢', '森林', '濕地', '苔原'];
-                var colors = {json.dumps(PALETTE)};
-
-                div.innerHTML += '<b>土地覆蓋圖例</b><br>';
-                for (var i = 0; i < labels.length; i++) {{
-                    div.innerHTML +=
-                        '<i style="background:' + colors[i] + '"></i> ' + labels[i] + '<br>';
-                }}
-                return div;
-            }};
-            legend.addTo(map_lc);
-        </script>
-    </body>
-    </html>
-    """
-    html(html_code_lc, height=550)
-
+# 土地覆蓋視覺化參數
+classVis = {
+    'min': 0,
+    'max': 10,
+    'palette': [
+        '006400', 'ffbb22', 'ffff4c', 'f096ff', 'fa0000',
+        'b4b4b4', 'f0f0f0', '0064c8', '0096a0', '00cf75', 'fae6a0'
+    ]
+}
 
 st.markdown("---")
 st.write("此應用使用 Google Earth Engine (GEE) 的 GLC_FCS30D 資料集顯示台灣的土地覆蓋變化，並透過 Leaflet.js 呈現。")
