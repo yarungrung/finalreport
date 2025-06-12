@@ -159,42 +159,6 @@ with col1:
         })
         tile_url_s2 = map_id_dict_s2['url']
 
-html_code_s2 = f"""
-<!DOCTYPE html>
-<html>
-<head>
-        <title>Sentinel-2 Map</title>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-         integrity="sha256-p4NxAoCcTZeWLgQz7PHrPvLeKkBGfG/6h7cdFG8FVY="
-         crossorigin=""/>
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-         integrity="sha256-20n6fxy+PGEQzYf/HjV36Ymg7XwU2Yf7g2Q/9g2X2Fw="
-         crossorigin=""></script>
-        <style>
-            #map-s2 {{ height: 500px; width: 100%; }}
-        </style>
-    </head>
-    <body>
-        <div id="map-s2"></div>
-        <script>
-            var map_s2 = L.map('map-s2').setView([{center_lat}, {center_lon}], 10);
-
-            L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png', {{
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }}).addTo(map_s2);
-
-            L.tileLayer('{tile_url_s2}', {{
-                attribution: 'Google Earth Engine - Sentinel-2 True Color',
-                opacity: 0.8
-            }}).addTo(map_s2);
-        </script>
-    </body>
-    </html>
-    """
-    html(html_code_s2, height=550)
-
 
 # --- 右欄：土地覆蓋圖資 ---
 with col2:
