@@ -159,10 +159,10 @@ with col1:
         })
         tile_url_s2 = map_id_dict_s2['url']
 
-    html_code_s2 = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
+   html_code_s2 = f"""
+<!DOCTYPE html>
+<html>
+<head>
         <title>Sentinel-2 Map</title>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
