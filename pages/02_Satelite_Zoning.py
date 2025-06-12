@@ -178,11 +178,6 @@ with col2:
             'visParams': VIS_PARAMS
         })
         tile_url_lc = map_id_dict_lc['url']
-    except Exception as e:
-        st.error(f"無法為土地覆蓋影像獲取瓦片 URL。錯誤：{e}")
-        st.warning("將顯示預設的 OpenStreetMap 地圖。")
-        # Fallback to a placeholder tile URL if GEE fails
-        tile_url_lc = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 
 
     html_code_lc = f"""
