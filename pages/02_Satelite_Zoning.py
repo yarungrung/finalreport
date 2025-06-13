@@ -5,7 +5,7 @@ import geemap
 from streamlit.components.v1 import html
 from google.oauth2 import service_account
 import geemap.foliumap as geemap
-
+import folium # 需要導入 folium 來使用 ImageOverlay
 
 st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化", page_icon="🌎")
 
@@ -29,23 +29,44 @@ except Exception as e:
     st.stop() # 停止 Streamlit 應用程式執行
 
 st.set_page_config(layout="wide")
-st.title("土地覆蓋圖層左右分割顯示 (Landsat 影像與監督式分類)")
+st.title("1994年Landsat5影像與土地覆蓋圖層")
 
-# 定義感興趣的區域 (台灣南部區域，符合你提供的 ROI)
-roi = ee.Geometry.Rectangle([120.174618, 23.008626, 120.297048, 23.069197])
-my_point = ee.Geometry.Point([120.271555, 23.106061]) # 原始點，作為篩選中心
+# geemap 中呈現本地圖片
+# 你可以在這裡添加其他 GEE 圖層，它們會疊加在圖片之上或之下
+# 你的圖片路徑
+image_path = "1994image.png"
 
-# --- 左邊圖層：1994年 Landsat 影像 ---
-# 獲取 1994 年的 Landsat 影像
-st.image("1994image.png")
-   
+# 請根據你的 '1994image.png' 實際覆蓋的地理範圍來設定邊界格式。
+image_bounds = [[23.008626, 120.174618], [23.069197, 120.297048]]
 
+# 計算地圖中心和縮放級別
+center_lat = (image_bounds[0][0] + image_bounds[1][0]) / 2
+center_lon = (image_bounds[0][1] + image_bounds[1][1]) / 2
+initial_zoom = 12 # 根據圖片大小和邊界調整
+
+# 創建 geemap 地圖
+my_Map = geemap.Map(center=[center_lat, center_lon], zoom=initial_zoom)
+my_Map.add_basemap("OpenStreetMap") # 添加一個底圖
+
+# 將圖片作為 ImageOverlay 添加到地圖上
+try:
+    folium.raster_layers.ImageOverlay(
+        image=image_path,
+        bounds=image_bounds,
+        opacity=1, # 圖片透明度
+        name='你的本地圖片 (1994image.png)' # 圖層名稱
+    ).add_to(my_Map)
+    st.write("已成功將本地圖片作為圖層添加到地圖上。")
+except Exception as e:
+    st.error(f"添加圖片疊加層失敗：{e}")
+    st.info("請確認 `1994image.png` 文件存在於正確的路徑，且 `image_bounds` 設置正確。")
+
+
+# 例如，添加一個 Sentinel-2 影像作為參考
+classified_image = ee.ImageCollection("COPERNICUS/S2_HARMONIZED").filterBounds(ee.Geometry.Point(center_lon, center_lat)).filterDate("2021-01-01", "2022-01-01")
+.first().clip(ee.Geometry.Rectangle(image_bounds[0][1], image_bounds[0][0], image_bounds[1][1], image_bounds[1][0]))
 vis_params = {'min': 100, 'max': 3500, 'bands': ['B7','B4','B3']}
-
-    # 4. 建立地圖並添加圖層
-    my_Map = geemap.Map()
-
-    # 為監督式分類添加一個簡單的圖例 (手動建立，因為不是內建圖例)
+# 為監督式分類添加一個簡單的圖例 (手動建立，因為不是內建圖例)
     st.write("### 分類圖例 (右側地圖)")
     st.markdown("""
     <div style="display: flex; flex-wrap: wrap; gap: 10px;">
@@ -64,16 +85,13 @@ vis_params = {'min': 100, 'max': 3500, 'bands': ['B7','B4','B3']}
     </div>
     """, unsafe_allow_html=True)
 
-    # 設置地圖中心和縮放
+    my_Map.add_ee_layer(classified_image, vis_params, 'Landsat 監督式分類土地覆蓋分類')
+# 設置地圖中心和縮放
     my_Map.centerObject(roi, 12)
-    # 顯示地圖
-    my_Map.to_streamlit(height=600)
-    # 左側圖層：1994年 Landsat 影像
-    left_layer = geemap.ee_tile_layer(1994image, VIS_PARAMS, '1994年 Landsat 影像')
-    # 右側圖層：Landsat 監督式分類結果
-    right_layer = geemap.ee_tile_layer(classified_image, classification_vis, 'Landsat 監督式分類')
-
-    my_Map.split_map(left_layer, right_layer)
+# 添加圖層控制，以便用戶可以開關圖片圖層
+    my_Map.add_layer_control()
+# 顯示地圖
+my_Map.to_streamlit(height=600)
 
 st.markdown(
     """
