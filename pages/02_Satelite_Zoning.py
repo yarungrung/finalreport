@@ -33,17 +33,13 @@ st.title("1994年Landsat5影像與土地覆蓋圖層")
 
 # geemap 中呈現本地圖片
 # 你可以在這裡添加其他 GEE 圖層，它們會疊加在圖片之上或之下
-# 你的圖片路徑
 image_path = "1994image.png"
-
-# 請根據你的 '1994image.png' 實際覆蓋的地理範圍來設定邊界格式。
+# 根據 '1994image.png' 實際覆蓋的地理範圍來設定邊界格式。
 image_bounds = [[23.008626, 120.174618], [23.069197, 120.297048]]
-
 # 計算地圖中心和縮放級別
 center_lat = (image_bounds[0][0] + image_bounds[1][0]) / 2
 center_lon = (image_bounds[0][1] + image_bounds[1][1]) / 2
 initial_zoom = 12 # 根據圖片大小和邊界調整
-
 # 創建 geemap 地圖
 my_Map = geemap.Map(center=[center_lat, center_lon], zoom=initial_zoom)
 my_Map.add_basemap("OpenStreetMap") # 添加一個底圖
@@ -61,13 +57,15 @@ except Exception as e:
     st.error(f"添加圖片疊加層失敗：{e}")
     st.info("請確認 `1994image.png` 文件存在於正確的路徑，且 `image_bounds` 設置正確。")
 
-
 # 例如，添加一個 Sentinel-2 影像作為參考
-classified_image = ee.ImageCollection("COPERNICUS/S2_HARMONIZED").filterBounds(ee.Geometry.Point(center_lon, center_lat)).filterDate("2021-01-01", "2022-01-01")
-.first().clip(ee.Geometry.Rectangle(image_bounds[0][1], image_bounds[0][0], image_bounds[1][1], image_bounds[1][0]))
-vis_params = {'min': 100, 'max': 3500, 'bands': ['B7','B4','B3']}
+var dataset = ee.ImageCollection('LANDSAT/LM05/C02/T1')
+                  .filterDate('1985-01-01', '1989-12-31');
+var nearInfrared321 = dataset.select(['B3', 'B2', 'B1']);
+var nearInfrared321Vis = {};
+vis_params = {'min': 100, 'max': 3500, 'bands': ['B3','B2','B1']}
+
 # 為監督式分類添加一個簡單的圖例 (手動建立，因為不是內建圖例)
-    st.write("### 分類圖例 (右側地圖)")
+    st.write("### 分類圖例")
     st.markdown("""
     <div style="display: flex; flex-wrap: wrap; gap: 10px;">
         <div style="display: flex; align-items: center;">
@@ -92,6 +90,7 @@ vis_params = {'min': 100, 'max': 3500, 'bands': ['B7','B4','B3']}
     my_Map.add_layer_control()
 # 顯示地圖
 my_Map.to_streamlit(height=600)
+    Map.addLayer(nearInfrared321, nearInfrared321Vis, 'Landsat 監督式分類土地覆蓋分類')
 
 st.markdown(
     """
