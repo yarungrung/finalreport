@@ -57,12 +57,15 @@ except Exception as e:
     st.error(f"添加圖片疊加層失敗：{e}")
     st.info("請確認 `1994image.png` 文件存在於正確的路徑，且 `image_bounds` 設置正確。")
 
-# 例如，添加一個 Sentinel-2 影像作為參考
+# 添加一個 1994年的Sentinel-2 影像作為參考
 var dataset = ee.ImageCollection('LANDSAT/LM05/C02/T1')
-                  .filterDate('1985-01-01', '1989-12-31');
+                  .filterDate('1994-01-01', '1994-12-31');
 var nearInfrared321 = dataset.select(['B3', 'B2', 'B1']);
-var nearInfrared321Vis = {};
-vis_params = {'min': 100, 'max': 3500, 'bands': ['B3','B2','B1']}
+var nearInfrared321Vis = {
+    min: 0,
+    max: 2000,
+    bands: ['B3', 'B2', 'B1'] };
+
 
 # 為監督式分類添加一個簡單的圖例 (手動建立，因為不是內建圖例)
     st.write("### 分類圖例")
