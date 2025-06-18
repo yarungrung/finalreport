@@ -8,7 +8,14 @@ import json
 st.set_page_config(layout="wide")
 st.title("南科周圍都市熱區🌍2014")
 
-st.markdown("南科周圍都市熱區🌍2014")
+st.markdown("從 NDVI 到地表溫度 (LST) 的簡介
+本應用程式展示了如何利用衛星數據，從地表植被綠度 (NDVI) 推算真實地表溫度 (LST)。
+
+NDVI (正規化差異植被指數)：反映地表植被的茂密程度。
+LST (地表溫度)：量測地表散發出的實際熱度。
+關聯： 我們利用 NDVI 估算植被覆蓋率，進而決定地表的熱量發射效率 (發射率)。此發射率是將衛星熱紅外數據轉換為準確地表溫度的關鍵。
+
+簡言之，NDVI 幫助我們校正並精準呈現地表熱度，有助於識別都市熱區。")
 # --- GEE 服務帳戶驗證 ---
 try:
     service_account_info_raw = st.secrets["GEE_SERVICE_ACCOUNT"]
