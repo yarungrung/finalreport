@@ -4,11 +4,11 @@ from google.oauth2 import service_account
 import geemap.foliumap as geemap
 import json
 
-st.markdown("南科周圍都市熱區🌍2014")
 # --- Streamlit 應用程式設定 ---
 st.set_page_config(layout="wide")
 st.title("南科周圍都市熱區🌍2014")
 
+st.markdown("南科周圍都市熱區🌍2014")
 # --- GEE 服務帳戶驗證 ---
 try:
     service_account_info_raw = st.secrets["GEE_SERVICE_ACCOUNT"]
