@@ -8,9 +8,10 @@ import geemap.foliumap as geemap
 import folium # 需要導入 folium 來使用 ImageOverlay
 
 st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化", page_icon="🌎")
+#此分頁有兩個左右分割圖，一個是1994年的土地監督式分類圖資佐衛星影像圖；一個是2021年的(因為有現成圖資)
 
 st.title("1994年台灣土地覆蓋變化分析🌍")
-st.markdown("左側為衛星真色影像；右側為土地覆蓋圖資。")
+st.markdown("左側為衛星真色影像；右側為土地覆蓋圖資。"
 
 # ✅ 授權 Earth Engine
 service_account_info = st.secrets["GEE_SERVICE_ACCOUNT"]
@@ -105,6 +106,21 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 st.title("2021年台灣土地覆蓋變化分析🌍")
