@@ -32,7 +32,33 @@ except Exception as e:
 st.set_page_config(layout="wide")
 st.title("1994年Landsat5影像與土地覆蓋圖層")
 
-
+# 獲取影像
+landsat_1994 = get_landsat_image(1994, region)
+landsat_2024 = get_landsat_image(2024, region)
+# 定義調色盤模板（NLCD）
+palette = [
+    '#466b9f',  # Open water
+    '#d1def8',  # Perennial ice/snow
+    '#dec5c5',  # Developed, open space
+    '#d99282',  # Developed, low intensity
+    '#eb0000',  # Developed, medium intensity
+    '#ab0000',  # Developed high intensity
+    '#b3ac9f',  # Barren land
+    '#68ab5f',  # Deciduous forest
+    '#1c5f2c',  # Evergreen forest
+    '#b5c58f',  # Mixed forest
+    '#ccb879',  # Cultivated crops
+    '#b8d9eb',  # Woody wetlands
+    '#6c9fb8'   # Emergent herbaceous wetlands
+]
+# Streamlit 應用程式
+st.title("南部科技園區土地使用分類衛星影像比較")
+# 顯示 1994 年影像
+st.subheader("1994 年土地使用分類")
+st.image(landsat_1994.getThumbUrl({'min': 0, 'max': 0.3, 'palette': palette}), use_column_width=True)
+# 顯示 2024 年影像
+st.subheader("2024 年土地使用分類")
+st.image(landsat_2024.getThumbUrl({'min': 0, 'max': 0.3, 'palette': palette}), use_column_width=True)
 
 
 
