@@ -7,8 +7,9 @@ st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化", page_ic
 
 st.title("1994年台灣土地覆蓋變化分析🌍")
 st.markdown("左側為衛星真色影像；右側為土地覆蓋圖資。"
-# 初始化 Google Earth Engine
-ee.Initialize()
+                      .median() \
+                      .clip(region) \
+                      .select(bands)
     return image
 # 定義區域
 region = ee.Geometry.Polygon([
