@@ -9,19 +9,6 @@ st.title("1994年台灣土地覆蓋變化分析🌍")
 st.markdown("左側為衛星真色影像；右側為土地覆蓋圖資。"
 # 初始化 Google Earth Engine
 ee.Initialize()
-# 定義函數以獲取 Landsat 影像
-def get_landsat_image(year, region):
-    if year < 2013:
-        collection = ee.ImageCollection('LANDSAT/LT05/C01/T1_SR')
-        bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B7']
-    else:
-        collection = ee.ImageCollection('LANDSAT/LC09/C02/T1_L2')
-        bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B10', 'B11']
-    image = collection.filterDate(f'{year}-01-01', f'{year}-12-31') \
-                      .filterBounds(region) \
-                      .median() \
-                      .clip(region) \
-                      .select(bands)
     return image
 # 定義區域
 region = ee.Geometry.Polygon([
