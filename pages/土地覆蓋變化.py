@@ -3,7 +3,7 @@ import ee
 import geemap
 
 st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化", page_icon="🌎")
-#此分頁有兩個左右分割圖，一個是1994年的土地監督式分類圖資佐衛星影像圖；一個是2021年的(因為有現成圖資)
+#此分頁有兩個左右分割圖，一個是1994年的土地監督式分類圖資佐衛星影像圖；一個是2024年的(因為有現成圖資)
 
 st.title("1994年與2024年之南科周遭土地覆蓋變化分析🌍")
 import streamlit as st
@@ -13,30 +13,43 @@ import ee
 ee.Initialize()
 
 # 定義函數以獲取 Landsat 影像
-def get_landsat_image(year, region):
-    if year < 2013:
-        collection = ee.ImageCollection('LANDSAT/LT05/C01/T1_SR')
-        bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B7']
-    else:
-        collection = ee.ImageCollection('LANDSAT/LC09/C02/T1_L2')
-        bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B10', 'B11']
+def get_landsat_image(region):
+    # 指定要獲取的年份
+    years = [1994, 2024]
+    images = []
 
-    # 檢查影像集合中是否有影像
-    image_count = collection.filterDate(f'{year}-01-01', f'{year}-12-31') \
-                             .filterBounds(region) \
-                             .size().getInfo()
+    for year in years:
+        if year < 1994:
+            collection = ee.ImageCollection('LANDSAT/LT04/C01/T1_SR')  # Landsat 4
+            bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B7']
+        elif year < 2013:
+            collection = ee.ImageCollection('LANDSAT/LT05/C01/T1_SR')  # Landsat 5
+            bands = ['B1', 'B2', 'B3', 'B4', 'B5', 'B7']
+        elif year < 2021:
+            collection = ee.ImageCollection('LANDSAT/LC08/C01/T1_SR')  # Landsat 8
+            bands = ['B2', 'B1', 'B3', 'B4', 'B5', 'B6', 'B7', 'B10', 'B11']
+        else:
+            collection = ee.ImageCollection('LANDSAT/LC09/C02/T1_L2')  # Landsat 9
+            bands = ['B2', 'B1', 'B3', 'B4', 'B5', 'B6', 'B7']
 
-    if image_count == 0:
-        st.warning(f"{year} 年的影像在指定區域內不存在。")
-        return None
+        # 檢查影像集合中是否有影像
+        image_count = collection.filterDate(f'{year}-01-01', f'{year}-12-31') \
+                                 .filterBounds(region) \
+                                 .size().getInfo()
 
-    image = collection.filterDate(f'{year}-01-01', f'{year}-12-31') \
-                      .filterBounds(region) \
-                      .median() \
-                      .clip(region) \
-                      .select(bands)
+        if image_count == 0:
+            print(f"{year} 年的影像在指定區域內不存在。")
+            continue
 
-    return image
+        image = collection.filterDate(f'{year}-01-01', f'{year}-12-31') \
+                          .filterBounds(region) \
+                          .median() \
+                          .clip(region) \
+                          .select(bands)
+
+        images.append(image)
+
+    return images
 
 # 定義區域
 region = ee.Geometry.Polygon([
