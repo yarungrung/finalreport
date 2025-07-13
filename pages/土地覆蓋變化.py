@@ -1,16 +1,14 @@
 import streamlit as st
 import ee
-import geemap
-
-st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化", page_icon="🌎")
-#此分頁有兩個左右分割圖，一個是1994年的土地監督式分類圖資佐衛星影像圖；一個是2024年的(因為有現成圖資)
-
-st.title("1994年與2024年之南科周遭土地覆蓋變化分析🌍")
-import streamlit as st
-import ee
 
 # 初始化 Google Earth Engine
-ee.Initialize()
+try:
+    ee.Initialize()
+except Exception as e:
+    st.error("未授權，請運行 `earthengine authenticate` 來授權。")
+    st.stop()
+
+st.set_page_config(layout="wide", page_title="台灣土地覆蓋變化", page_icon="🌎")
 
 # 定義函數以獲取 Landsat 影像
 def get_landsat_image(region):
@@ -57,8 +55,9 @@ region = ee.Geometry.Polygon([
 ])
 
 # 獲取影像
-landsat_1994 = get_landsat_image(1994, region)
-landsat_2024 = get_landsat_image(2024, region)
+landsat_images = get_landsat_image(region)
+landsat_1994 = landsat_images[0] if len(landsat_images) > 0 else None
+landsat_2024 = landsat_images[1] if len(landsat_images) > 1 else None
 
 # 定義調色盤
 palette = ['#466b9f', '#d1def8', '#dec5c5', '#d99282', '#eb0000', '#ab0000', '#b3ac9f', '#68ab5f', '#1c5f2c', '#b5c58f', '#ccb879', '#b8d9eb', '#6c9fb8']
