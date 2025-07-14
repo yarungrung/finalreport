@@ -1,24 +1,9 @@
 import streamlit as st
 import ee
-from google.oauth2 import service_account
-
-# 替換為你剛下載的金鑰路徑
-SERVICE_ACCOUNT = 'gee-service-account@ee-s1243032.iam.gserviceaccount.com'
-KEY_FILE = 'C:\google earth engine gold key.json'
-
-# 建立認證物件
-credentials = service_account.Credentials.from_service_account_file(
-    KEY_FILE,
-    scopes=['https://www.googleapis.com/auth/earthengine']
-)
-
-# 初始化 Earth Engine
-ee.Initialize(credentials)
-
 
 # 初始化 Google Earth Engine
 try:
-    ee.Initialize(credentials)
+    ee.Initialize()
 except Exception as e:
     st.error("未授權，請運行 `earthengine authenticate` 來授權。")
     st.stop()
