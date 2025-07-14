@@ -1,5 +1,10 @@
 import streamlit as st
 import ee
+from google.oauth2 import service_account
+
+# 替換為你剛下載的金鑰路徑
+SERVICE_ACCOUNT = 'gee-service-account@ee-s1243032.iam.gserviceaccount.com'
+KEY_FILE = 'C:\google earth engine gold key.json'
 
 # 初始化 Google Earth Engine
 try:
