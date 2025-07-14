@@ -18,7 +18,7 @@ ee.Initialize(credentials)
 
 # 初始化 Google Earth Engine
 try:
-    ee.Initialize()
+    ee.Initialize(credentials)
 except Exception as e:
     st.error("未授權，請運行 `earthengine authenticate` 來授權。")
     st.stop()
