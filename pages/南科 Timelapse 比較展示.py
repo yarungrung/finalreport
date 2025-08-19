@@ -4,10 +4,14 @@ st.title("南科 Timelapse 比較展示")
 
 st.markdown(" 以Timelapse展現從普通農地逐步興建成「南科」過程")
 # 顯示前兩張全幅圖片
-st.image("Tainansmall1984~2024.png")
+with col4:
+    st.image("Tainansmall1984~2024.png")
 
 st.markdown(" 以Timelapse南科從零到有的全過程及周遭尤其路網的同步發展")
-st.image("Tianannewroad.png")
+with col5:
+    st.image("Tianannewroad.png")
+
+col4, col5 = st.columns(2)
 
 # 顯示三張並排的 timelapse
 st.markdown(" 依據南科發展史分割三大時期，從左到右分別為：從無到南科第一期的擴建、南科從第一期至第二期的擴建、南科從第二期至第三期的擴建及至今")
