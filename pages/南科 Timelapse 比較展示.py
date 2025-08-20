@@ -3,7 +3,7 @@ st.set_page_config(layout="wide")
 st.title("南科 Timelapse 比較展示")
 
 # 顯示前兩張全幅圖片
-st.markdown("1984-2025之衛星圖像變化")
+st.markdown("**1984-2025之衛星圖像變化**")
 col1, col2 = st.columns(2)
 with col1:
     st.image("Tainansmall1984~2024.png", caption="1984-2025南科發展過程")
